@@ -765,24 +765,29 @@ async function loadData() {
 
 // ── Calculations ───────────────────────────────────────────────────────────
 function calc() {
-  let sharedInc = 0, shreyansInc = 0, sharedExp = 0, shreyansExp = 0;
+  let sharedInc = 0, shreyansInc = 0, sharedExp = 0, shreyansExp = 0, totalSalary = 0;
   txns.forEach(t => {
     const amt = Number(t.amount);
     if (t.type === 'income') {
       if (t.split === 'shared') sharedInc += amt;
       else shreyansInc += amt;
-    } else {
-      // Backward compat: null or 'shared' → 50/50; 'shreyan' → 100% Shreyans
+    } else if (t.type === 'expense') {
+      // Only count actual business expenses (NOT salary or debt)
       if (t.split === 'shreyan') shreyansExp += amt;
       else sharedExp += amt;
+    } else if (t.type === 'salary') {
+      totalSalary += amt; // tracked separately — reduces actual bank cash
     }
+    // debt type: ignored in P&L calc, shown separately on Share page
   });
   const totalInc = sharedInc + shreyansInc;
   const totalExp = sharedExp + shreyansExp;
-  const balance = totalInc - totalExp;
+  // Actual bank balance = income − business expenses − salaries already paid out
+  const balance = totalInc - totalExp - totalSalary;
+  // Partner net earnings = their profit allocation from business (before any salary draws)
   const shreyansNet = (sharedInc / 2) + shreyansInc - (sharedExp / 2) - shreyansExp;
   const vismayNet = (sharedInc / 2) - (sharedExp / 2);
-  return { sharedInc, shreyansInc, totalInc, sharedExp, shreyansExp, totalExp, balance, shreyansNet, vismayNet };
+  return { sharedInc, shreyansInc, totalInc, sharedExp, shreyansExp, totalExp, totalSalary, balance, shreyansNet, vismayNet };
 }
 
 function calcMonth(monthTxns) {
@@ -791,9 +796,10 @@ function calcMonth(monthTxns) {
     const amt = Number(t.amount);
     if (t.type === 'income') {
       if (t.split === 'shared') sharedInc += amt; else shreyansInc += amt;
-    } else {
+    } else if (t.type === 'expense') {
       if (t.split === 'shreyan') shreyansExp += amt; else sharedExp += amt;
     }
+    // salary/debt excluded — handled by calcShareMonth
   });
   const totalInc = sharedInc + shreyansInc;
   const totalExp = sharedExp + shreyansExp;
