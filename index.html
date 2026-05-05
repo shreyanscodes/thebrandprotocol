@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TBP Finance — Partner Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #1a1917; --surface: #242220; --surface-2: #2e2c2a;
+      --border: #3d3b38; --border-light: #4a4744;
+      --text: #ece9e3; --text-2: #a8a49e; --text-3: #6b6762;
+      --accent: #c96442; --accent-hover: #d4724f; --accent-dim: rgba(201,100,66,0.15);
+      --green: #4caf7d; --green-dim: rgba(76,175,125,0.12);
+      --red: #e05a5a; --red-dim: rgba(224,90,90,0.12);
+      --blue: #6b9fd4; --blue-dim: rgba(107,159,212,0.12);
+      --radius: 12px; --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .main { flex: 1; overflow-y: auto; padding: 32px; }
+
+    .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .logo-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .conn-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); margin-right: 5px; vertical-align: middle; transition: background 0.3s; }
+    .conn-dot.online { background: var(--green); }
+    .conn-dot.offline { background: var(--red); }
+
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: 0.5px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text-2); font-size: 13.5px; transition: all 0.15s; user-select: none; }
+    .nav-item:hover { background: var(--surface-2); color: var(--text); }
+    .nav-item.active { background: var(--accent-dim); color: var(--accent); font-weight: 500; }
+
+    .sidebar-actions { padding: 12px 20px 4px; display: flex; flex-direction: column; gap: 6px; }
+    .sidebar-btn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: transparent; color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; font-family: inherit; width: 100%; }
+    .sidebar-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-light); }
+    .sidebar-btn.import-btn:hover { border-color: var(--blue); color: var(--blue); }
+    #import-file { display: none; }
+
+    .sidebar-balance { padding: 16px 20px 0; border-top: 1px solid var(--border); }
+    .balance-label { font-size: 11px; color: var(--text-3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .balance-amount { font-size: 22px; font-weight: 700; color: var(--green); letter-spacing: -0.5px; }
+    .balance-amount.neg { color: var(--red); }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .stat-label { font-size: 12px; color: var(--text-3); margin-bottom: 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+    .stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .stat-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+    .stat-card.income .stat-value { color: var(--green); }
+    .stat-card.expense .stat-value { color: var(--red); }
+    .stat-card.shreyan .stat-value { color: var(--accent); }
+    .stat-card.vismeid .stat-value { color: var(--blue); }
+
+    .page-header { margin-bottom: 24px; }
+    .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+    .page-sub { color: var(--text-3); font-size: 13px; margin-top: 4px; }
+
+    .section { margin-bottom: 28px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .section-title { font-size: 15px; font-weight: 600; }
+
+    .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+    .form-input, .form-select { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 10px 12px; font-size: 14px; outline: none; transition: border-color 0.15s; font-family: inherit; width: 100%; }
+    .form-input:focus, .form-select:focus { border-color: var(--accent); }
+    .form-select option { background: var(--surface-2); }
+    .form-input.invalid { border-color: var(--red); }
+    .field-error { font-size: 11.5px; color: var(--red); margin-top: 2px; display: none; }
+
+    .type-toggle, .split-toggle { display: flex; gap: 8px; }
+    .toggle-btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; text-align: center; }
+    .toggle-btn.sel-income { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .toggle-btn.sel-expense { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .split-btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; text-align: center; line-height: 1.4; }
+    .split-btn.sel-shared { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+    .split-btn.sel-shreyan { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+    .btn { padding: 10px 20px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; font-family: inherit; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+    .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+    .tx-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .tx-item { display: grid; grid-template-columns: 36px 1fr auto auto auto; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+    .tx-item:last-child { border-bottom: none; }
+    .tx-item:hover { background: var(--surface-2); }
+    .tx-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+    .tx-icon.income { background: var(--green-dim); }
+    .tx-icon.expense { background: var(--red-dim); }
+    .tx-name { font-size: 13.5px; font-weight: 500; }
+    .tx-meta { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+    .tx-badge { font-size: 10.5px; font-weight: 500; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+    .badge-shared { background: var(--blue-dim); color: var(--blue); }
+    .badge-shreyan { background: var(--accent-dim); color: var(--accent); }
+    .badge-expense { background: var(--red-dim); color: var(--red); }
+    .tx-amount { font-size: 14px; font-weight: 600; white-space: nowrap; }
+    .tx-amount.income { color: var(--green); }
+    .tx-amount.expense { color: var(--red); }
+    .tx-del { width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent; color: var(--text-3); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; font-size: 13px; }
+    .tx-del:hover { background: var(--red-dim); color: var(--red); }
+    .tx-del.armed { background: var(--red-dim); color: var(--red); font-size: 10px; font-weight: 600; width: auto; padding: 0 8px; white-space: nowrap; }
+
+    .partner-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .partner-block { background: var(--surface-2); border-radius: var(--radius-sm); padding: 20px; border: 1px solid var(--border); }
+    .partner-name { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+    .partner-name.shreyan { color: var(--accent); }
+    .partner-name.vismeid { color: var(--blue); }
+    .calc-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+    .calc-row:last-of-type { border-bottom: none; }
+    .calc-label { color: var(--text-2); }
+    .calc-total { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 0; margin-top: 8px; border-top: 1px solid var(--border-light); font-size: 15px; font-weight: 700; }
+
+    .breakdown-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .brow { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+    .brow:last-child { border-bottom: none; }
+    .brow-label { color: var(--text-2); }
+    .brow-value { font-weight: 600; }
+
+    .empty { text-align: center; padding: 48px 20px; color: var(--text-3); }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .chip { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; }
+    .chip:hover { border-color: var(--border-light); color: var(--text); }
+    .chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* Loading overlay */
+    #loading-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 16px; transition: opacity 0.3s; }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--text-3); font-size: 13px; }
+
+    /* Toast */
+    #toasts { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .toast { padding: 12px 18px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 500; color: #fff; opacity: 0; transform: translateY(6px); transition: all 0.2s ease; max-width: 300px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .toast.in { opacity: 1; transform: translateY(0); }
+    .toast.ok { background: #2a5c42; border: 1px solid var(--green); }
+    .toast.err { background: #5c2a2a; border: 1px solid var(--red); }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: 1fr 1fr; } .form-row.three { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 640px) { .sidebar { display: none; } .main { padding: 16px; } .stats-grid { grid-template-columns: 1fr; } .partner-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Connecting to database…</div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-title">TBP Finance</div>
+      <div class="logo-sub"><span class="conn-dot" id="conn-dot"></span><span id="conn-label">Connecting…</span></div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" id="nav-dashboard">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" id="nav-split">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>
+        Partner Split
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Transactions</div>
+      <div class="nav-item" id="nav-add">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Add Transaction
+      </div>
+      <div class="nav-item" id="nav-history">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        History
+      </div>
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="sidebar-btn" id="btn-export">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Backup
+      </button>
+      <label class="sidebar-btn import-btn" for="import-file">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="5" x2="12" y2="17"/></svg>
+        Import Backup
+      </label>
+      <input type="file" id="import-file" accept=".json" />
+    </div>
+
+    <div class="sidebar-balance">
+      <div class="balance-label">Bank Balance</div>
+      <div class="balance-amount" id="sidebarBalance">₹0</div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- Dashboard -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Agency financial overview</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card income"><div class="stat-label">Total Income</div><div class="stat-value" id="s-income">₹0</div><div class="stat-sub" id="s-income-sub">0 transactions</div></div>
+        <div class="stat-card expense"><div class="stat-label">Total Expenses</div><div class="stat-value" id="s-expense">₹0</div><div class="stat-sub" id="s-expense-sub">0 transactions</div></div>
+        <div class="stat-card shreyan"><div class="stat-label">Shreyan's Share</div><div class="stat-value" id="s-shreyan">₹0</div><div class="stat-sub">Net earnings</div></div>
+        <div class="stat-card vismeid"><div class="stat-label">Vismeid's Share</div><div class="stat-value" id="s-vismeid">₹0</div><div class="stat-sub">Net earnings</div></div>
+      </div>
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Recent Transactions</div>
+          <button class="btn btn-ghost" id="btn-view-all" style="font-size:12px;padding:6px 14px;">View all</button>
+        </div>
+        <div class="tx-list" id="list-recent"></div>
+      </div>
+    </div>
+
+    <!-- Add Transaction -->
+    <div class="view" id="view-add">
+      <div class="page-header">
+        <div class="page-title">Add Transaction</div>
+        <div class="page-sub">Record income or expense</div>
+      </div>
+      <div class="form-card">
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">Transaction Type</div>
+            <div class="type-toggle">
+              <div class="toggle-btn sel-income" id="btn-income">↑ Income</div>
+              <div class="toggle-btn" id="btn-expense">↓ Expense</div>
+            </div>
+          </div>
+          <div class="form-group" id="split-group">
+            <div class="form-label">Income Split</div>
+            <div class="split-toggle">
+              <div class="split-btn sel-shared" id="btn-shared">50 / 50<br><small>Both Partners</small></div>
+              <div class="split-btn" id="btn-shreyan-only">100% Shreyan<br><small>Solo Project</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row three">
+          <div class="form-group">
+            <div class="form-label">Amount (₹) *</div>
+            <input type="number" class="form-input" id="f-amount" placeholder="0" min="0.01" step="0.01" />
+            <div class="field-error" id="err-amount">Please enter a valid amount.</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Date</div>
+            <input type="date" class="form-input" id="f-date" />
+          </div>
+          <div class="form-group">
+            <div class="form-label">Category</div>
+            <select class="form-select" id="f-category">
+              <option value="">Select category</option>
+              <optgroup label="Income">
+                <option value="Client Payment">Client Payment</option>
+                <option value="Project Milestone">Project Milestone</option>
+                <option value="Retainer">Retainer</option>
+                <option value="Consulting">Consulting</option>
+              </optgroup>
+              <optgroup label="Expense">
+                <option value="Software/Tools">Software / Tools</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Freelancer">Freelancer Payment</option>
+                <option value="Office">Office / Admin</option>
+                <option value="Travel">Travel</option>
+                <option value="Miscellaneous">Miscellaneous</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">Client / Project Name</div>
+            <input type="text" class="form-input" id="f-client" placeholder="e.g. Acme Corp" />
+          </div>
+          <div class="form-group">
+            <div class="form-label">Description</div>
+            <input type="text" class="form-input" id="f-desc" placeholder="Brief note…" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="btn-clear">Clear</button>
+          <button class="btn btn-primary" id="btn-add">Add Transaction</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="view" id="view-history">
+      <div class="page-header">
+        <div class="page-title">Transaction History</div>
+        <div class="page-sub">All recorded transactions</div>
+      </div>
+      <div class="filter-bar">
+        <div class="chip active" data-f="all">All</div>
+        <div class="chip" data-f="income">Income</div>
+        <div class="chip" data-f="expense">Expenses</div>
+        <div class="chip" data-f="shared">50/50 Projects</div>
+        <div class="chip" data-f="shreyan">Shreyan Only</div>
+      </div>
+      <div class="tx-list" id="list-history"></div>
+    </div>
+
+    <!-- Partner Split -->
+    <div class="view" id="view-split">
+      <div class="page-header">
+        <div class="page-title">Partner Split Breakdown</div>
+        <div class="page-sub">How the money is distributed</div>
+      </div>
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px;">Agency Financials</div>
+        <div class="breakdown-card">
+          <div class="brow"><span class="brow-label">Shared Projects Income (50/50)</span><span class="brow-value" id="b-shared-inc" style="color:var(--green)">₹0</span></div>
+          <div class="brow"><span class="brow-label">Shreyan-only Income (100%)</span><span class="brow-value" id="b-shreyan-inc" style="color:var(--accent)">₹0</span></div>
+          <div class="brow"><span class="brow-label">Total Expenses</span><span class="brow-value" id="b-total-exp" style="color:var(--red)">₹0</span></div>
+          <div class="brow" style="padding-top:14px;margin-top:4px;border-top:2px solid var(--border-light);border-bottom:none;">
+            <span class="brow-label" style="font-weight:700;color:var(--text);font-size:14px;">Bank Balance</span>
+            <span class="brow-value" id="b-balance" style="font-size:16px;color:var(--green)">₹0</span>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px;">Per-Partner Breakdown</div>
+        <div class="partner-row">
+          <div class="partner-block">
+            <div class="partner-name shreyan">Shreyan</div>
+            <div class="calc-row"><span class="calc-label">50% of shared net</span><span id="p-sh-shared" style="color:var(--green);font-weight:600">₹0</span></div>
+            <div class="calc-row"><span class="calc-label">100% solo income</span><span id="p-sh-solo" style="color:var(--accent);font-weight:600">₹0</span></div>
+            <div class="calc-row"><span class="calc-label">50% of expenses</span><span id="p-sh-exp" style="color:var(--red);font-weight:600">₹0</span></div>
+            <div class="calc-total"><span>Net Earnings</span><span id="p-sh-net" style="font-size:18px;color:var(--green)">₹0</span></div>
+          </div>
+          <div class="partner-block">
+            <div class="partner-name vismeid">Vismeid</div>
+            <div class="calc-row"><span class="calc-label">50% of shared net</span><span id="p-vi-shared" style="color:var(--green);font-weight:600">₹0</span></div>
+            <div class="calc-row"><span class="calc-label">Solo income (N/A)</span><span style="color:var(--text-3);font-weight:600">₹0</span></div>
+            <div class="calc-row"><span class="calc-label">50% of expenses</span><span id="p-vi-exp" style="color:var(--red);font-weight:600">₹0</span></div>
+            <div class="calc-total"><span>Net Earnings</span><span id="p-vi-net" style="font-size:18px;color:var(--green)">₹0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+const SUPABASE_URL = 'https://nvnydtmsjinogimthvma.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52bnlkdG1zamlub2dpbXRodm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NzA0MzEsImV4cCI6MjA5MzU0NjQzMX0.pSha0WC4LhVOJYOonmHPBKHoUu-KFBkMN6UTJTqgWDc';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── State ──────────────────────────────────────────────────────────────────
+let txns = [];
+let currentType = 'income';
+let currentSplit = 'shared';
+let currentFilter = 'all';
+let armedDelete = null;
+let armedTimer = null;
+let isSaving = false;
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function today() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function inr(n) {
+  if (!n || isNaN(n)) n = 0;
+  const abs = Math.abs(n);
+  if (abs >= 10000000) return '₹' + (n/10000000).toFixed(2) + 'Cr';
+  if (abs >= 100000)   return '₹' + (n/100000).toFixed(2) + 'L';
+  if (abs >= 1000)     return '₹' + abs.toLocaleString('en-IN', {maximumFractionDigits:0});
+  return '₹' + abs.toFixed(2);
+}
+
+function inrFull(n) {
+  if (isNaN(n)) n = 0;
+  return '₹' + Math.abs(n).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function fmtDate(d) {
+  try { return new Date(d + 'T12:00:00').toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}); }
+  catch(e) { return d; }
+}
+
+function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function setColor(id, color) { const el = document.getElementById(id); if (el) el.style.color = color; }
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg, type = 'ok') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+  setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 300); }, 3500);
+}
+
+// ── Connection status ──────────────────────────────────────────────────────
+function setConn(status) {
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  if (status === 'online') { dot.className = 'conn-dot online'; label.textContent = 'Supabase connected'; }
+  else if (status === 'offline') { dot.className = 'conn-dot offline'; label.textContent = 'Offline mode'; }
+  else { dot.className = 'conn-dot'; label.textContent = 'Connecting…'; }
+}
+
+// ── Loading overlay ────────────────────────────────────────────────────────
+function hideLoading() {
+  const ol = document.getElementById('loading-overlay');
+  if (ol) { ol.classList.add('hidden'); setTimeout(() => ol.remove(), 400); }
+}
+
+// ── Supabase: Load all transactions ───────────────────────────────────────
+async function loadData() {
+  try {
+    const { data, error } = await db.from('transactions').select('*').order('created_at', { ascending: true });
+    if (error) throw error;
+    txns = data || [];
+    setConn('online');
+    // Cache locally as backup
+    try { localStorage.setItem('tbp_tx_cache', JSON.stringify(txns)); } catch(e) {}
+  } catch(err) {
+    console.error('Supabase load error:', err);
+    setConn('offline');
+    // Fall back to local cache
+    try { txns = JSON.parse(localStorage.getItem('tbp_tx_cache') || '[]'); } catch(e) { txns = []; }
+    toast('Could not reach database — showing cached data.', 'err');
+  }
+  hideLoading();
+  render();
+}
+
+// ── Calculations ───────────────────────────────────────────────────────────
+function calc() {
+  let sharedInc = 0, shreyanInc = 0, totalExp = 0;
+  txns.forEach(t => {
+    if (t.type === 'income') {
+      if (t.split === 'shared') sharedInc += Number(t.amount);
+      else shreyanInc += Number(t.amount);
+    } else {
+      totalExp += Number(t.amount);
+    }
+  });
+  const totalInc = sharedInc + shreyanInc;
+  const balance = totalInc - totalExp;
+  const sharedNet = sharedInc - totalExp;
+  const vismeidNet = sharedNet / 2;
+  const shreyanNet = sharedNet / 2 + shreyanInc;
+  return { sharedInc, shreyanInc, totalInc, totalExp, balance, sharedNet, vismeidNet, shreyanNet };
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function render() {
+  const s = calc();
+  const incCount = txns.filter(t => t.type === 'income').length;
+  const expCount = txns.filter(t => t.type === 'expense').length;
+
+  // Sidebar balance
+  set('sidebarBalance', inr(s.balance));
+  const balEl = document.getElementById('sidebarBalance');
+  if (balEl) balEl.className = 'balance-amount' + (s.balance < 0 ? ' neg' : '');
+
+  // Stats
+  set('s-income', inr(s.totalInc));
+  set('s-expense', inr(s.totalExp));
+  set('s-shreyan', inr(s.shreyanNet));
+  set('s-vismeid', inr(s.vismeidNet));
+  set('s-income-sub', incCount + ' transaction' + (incCount !== 1 ? 's' : ''));
+  set('s-expense-sub', expCount + ' transaction' + (expCount !== 1 ? 's' : ''));
+
+  // Split breakdown
+  set('b-shared-inc', inrFull(s.sharedInc));
+  set('b-shreyan-inc', inrFull(s.shreyanInc));
+  set('b-total-exp', inrFull(s.totalExp));
+  set('b-balance', inrFull(s.balance));
+  setColor('b-balance', s.balance < 0 ? 'var(--red)' : 'var(--green)');
+
+  const half = s.sharedNet > 0 ? s.sharedNet / 2 : 0;
+  set('p-sh-shared', inrFull(half));
+  set('p-sh-solo', inrFull(s.shreyanInc));
+  set('p-sh-exp', '−' + inrFull(s.totalExp / 2));
+  set('p-sh-net', inrFull(s.shreyanNet));
+  setColor('p-sh-net', s.shreyanNet < 0 ? 'var(--red)' : 'var(--green)');
+
+  set('p-vi-shared', inrFull(half));
+  set('p-vi-exp', '−' + inrFull(s.totalExp / 2));
+  set('p-vi-net', inrFull(s.vismeidNet));
+  setColor('p-vi-net', s.vismeidNet < 0 ? 'var(--red)' : 'var(--green)');
+
+  renderList('list-recent', txns.slice(-6).reverse(), 'all');
+  renderList('list-history', [...txns].reverse(), currentFilter);
+}
+
+function renderList(id, list, filter) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const filtered = list.filter(t => {
+    if (filter === 'all') return true;
+    if (filter === 'income') return t.type === 'income';
+    if (filter === 'expense') return t.type === 'expense';
+    if (filter === 'shared') return t.type === 'income' && t.split === 'shared';
+    if (filter === 'shreyan') return t.type === 'income' && t.split === 'shreyan';
+    return true;
+  });
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">${filter === 'all' ? '📊' : '🔍'}</div><div>No transactions found.</div></div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(t => {
+    const isInc = t.type === 'income';
+    const badge = isInc
+      ? (t.split === 'shared' ? '<span class="tx-badge badge-shared">50 / 50</span>' : '<span class="tx-badge badge-shreyan">100% Shreyan</span>')
+      : '<span class="tx-badge badge-expense">Expense</span>';
+    const meta = [t.category, fmtDate(t.date), t.description].filter(Boolean).join(' · ');
+    return `<div class="tx-item">
+      <div class="tx-icon ${t.type}">${isInc ? '↑' : '↓'}</div>
+      <div><div class="tx-name">${t.client || t.description || 'Unnamed'}</div><div class="tx-meta">${meta}</div></div>
+      ${badge}
+      <div class="tx-amount ${t.type}">${isInc ? '+' : '−'}${inrFull(t.amount)}</div>
+      <button class="tx-del" data-id="${t.id}" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.tx-del').forEach(btn => {
+    btn.addEventListener('click', e => handleDelete(e.currentTarget.getAttribute('data-id'), e.currentTarget));
+  });
+}
+
+// ── Two-tap delete ─────────────────────────────────────────────────────────
+async function handleDelete(id, btn) {
+  if (armedDelete === id) {
+    clearTimeout(armedTimer);
+    armedDelete = null;
+    try {
+      const { error } = await db.from('transactions').delete().eq('id', id);
+      if (error) throw error;
+      txns = txns.filter(t => t.id !== id);
+      try { localStorage.setItem('tbp_tx_cache', JSON.stringify(txns)); } catch(e) {}
+      toast('Transaction deleted.', 'err');
+      render();
+    } catch(err) {
+      toast('Delete failed — ' + err.message, 'err');
+      render();
+    }
+  } else {
+    if (armedDelete) {
+      clearTimeout(armedTimer);
+      document.querySelectorAll('.tx-del.armed').forEach(b => { b.classList.remove('armed'); b.textContent = '✕'; });
+    }
+    armedDelete = id;
+    btn.classList.add('armed');
+    btn.textContent = 'Confirm?';
+    armedTimer = setTimeout(() => {
+      armedDelete = null;
+      if (btn) { btn.classList.remove('armed'); btn.textContent = '✕'; }
+    }, 3000);
+  }
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const v = document.getElementById('view-' + name);
+  if (v) v.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+  render();
+}
+
+// ── Type / Split toggles ───────────────────────────────────────────────────
+function setType(type) {
+  currentType = type;
+  document.getElementById('btn-income').className = 'toggle-btn' + (type === 'income' ? ' sel-income' : '');
+  document.getElementById('btn-expense').className = 'toggle-btn' + (type === 'expense' ? ' sel-expense' : '');
+  document.getElementById('split-group').style.display = type === 'income' ? '' : 'none';
+}
+
+function setSplit(split) {
+  currentSplit = split;
+  document.getElementById('btn-shared').className = 'split-btn' + (split === 'shared' ? ' sel-shared' : '');
+  document.getElementById('btn-shreyan-only').className = 'split-btn' + (split === 'shreyan' ? ' sel-shreyan' : '');
+}
+
+// ── Form ───────────────────────────────────────────────────────────────────
+function resetForm() {
+  ['f-amount','f-client','f-desc'].forEach(id => { const el = document.getElementById(id); if (el) { el.value = ''; el.classList.remove('invalid'); }});
+  const fd = document.getElementById('f-date'); if (fd) fd.value = today();
+  const fc = document.getElementById('f-category'); if (fc) fc.value = '';
+  const ea = document.getElementById('err-amount'); if (ea) ea.style.display = 'none';
+  setType('income'); setSplit('shared');
+}
+
+async function addTransaction() {
+  if (isSaving) return;
+  const amountEl = document.getElementById('f-amount');
+  const errEl = document.getElementById('err-amount');
+  const raw = amountEl ? amountEl.value : '';
+  const amount = parseFloat(raw);
+
+  if (!raw || isNaN(amount) || amount <= 0) {
+    if (amountEl) amountEl.classList.add('invalid');
+    if (errEl) errEl.style.display = 'block';
+    toast('Enter a valid amount.', 'err');
+    return;
+  }
+  if (amountEl) amountEl.classList.remove('invalid');
+  if (errEl) errEl.style.display = 'none';
+
+  const dateEl = document.getElementById('f-date');
+  const catEl = document.getElementById('f-category');
+  const clientEl = document.getElementById('f-client');
+  const descEl = document.getElementById('f-desc');
+
+  const tx = {
+    id: Date.now().toString() + Math.floor(Math.random() * 999),
+    type: currentType,
+    split: currentType === 'income' ? currentSplit : null,
+    amount: amount,
+    date: (dateEl && dateEl.value) ? dateEl.value : today(),
+    category: catEl ? catEl.value : '',
+    client: clientEl ? clientEl.value.trim() : '',
+    description: descEl ? descEl.value.trim() : ''
+  };
+
+  // Disable button while saving
+  isSaving = true;
+  const addBtn = document.getElementById('btn-add');
+  if (addBtn) { addBtn.disabled = true; addBtn.textContent = 'Saving…'; }
+
+  try {
+    const { error } = await db.from('transactions').insert(tx);
+    if (error) throw error;
+    txns.push(tx);
+    try { localStorage.setItem('tbp_tx_cache', JSON.stringify(txns)); } catch(e) {}
+    resetForm();
+    toast((tx.type === 'income' ? 'Income' : 'Expense') + ' of ₹' + amount.toLocaleString('en-IN') + ' saved!', 'ok');
+    showView('dashboard');
+  } catch(err) {
+    toast('Save failed — ' + err.message, 'err');
+  } finally {
+    isSaving = false;
+    if (addBtn) { addBtn.disabled = false; addBtn.textContent = 'Add Transaction'; }
+  }
+}
+
+// ── Export / Import ────────────────────────────────────────────────────────
+function exportData() {
+  const d = new Date();
+  const blob = new Blob([JSON.stringify(txns, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tbp-finance-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Backup downloaded!', 'ok');
+}
+
+async function importData(file) {
+  try {
+    const text = await file.text();
+    const imported = JSON.parse(text);
+    if (!Array.isArray(imported)) throw new Error('Invalid file format');
+
+    // Upsert all into Supabase (insert or replace by id)
+    const { error } = await db.from('transactions').upsert(imported, { onConflict: 'id' });
+    if (error) throw error;
+
+    // Reload from Supabase to get clean state
+    await loadData();
+    toast('Imported ' + imported.length + ' transactions!', 'ok');
+  } catch(err) {
+    toast('Import failed — ' + err.message, 'err');
+  }
+}
+
+// ── Wire up events ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Nav
+  [['nav-dashboard','dashboard'],['nav-split','split'],['nav-add','add'],['nav-history','history']].forEach(([id, view]) => {
+    document.getElementById(id)?.addEventListener('click', () => showView(view));
+  });
+
+  document.getElementById('btn-view-all')?.addEventListener('click', () => showView('history'));
+  document.getElementById('btn-income')?.addEventListener('click', () => setType('income'));
+  document.getElementById('btn-expense')?.addEventListener('click', () => setType('expense'));
+  document.getElementById('btn-shared')?.addEventListener('click', () => setSplit('shared'));
+  document.getElementById('btn-shreyan-only')?.addEventListener('click', () => setSplit('shreyan'));
+  document.getElementById('btn-add')?.addEventListener('click', addTransaction);
+  document.getElementById('btn-clear')?.addEventListener('click', resetForm);
+  document.getElementById('btn-export')?.addEventListener('click', exportData);
+
+  document.getElementById('f-amount')?.addEventListener('input', () => {
+    document.getElementById('f-amount').classList.remove('invalid');
+    document.getElementById('err-amount').style.display = 'none';
+  });
+
+  document.getElementById('f-date').value = today();
+
+  document.getElementById('import-file')?.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) { importData(file); e.target.value = ''; }
+  });
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+      currentFilter = this.getAttribute('data-f');
+      renderList('list-history', [...txns].reverse(), currentFilter);
+    });
+  });
+
+  // Load data from Supabase
+  loadData();
+});
+</script>
+</body>
+</html>
