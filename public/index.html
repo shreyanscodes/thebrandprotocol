@@ -14,7 +14,6 @@
       --green: #4caf7d; --green-dim: rgba(76,175,125,0.12);
       --red: #e05a5a; --red-dim: rgba(224,90,90,0.12);
       --blue: #6b9fd4; --blue-dim: rgba(107,159,212,0.12);
-      --purple: #a97fd4; --purple-dim: rgba(169,127,212,0.12);
       --radius: 12px; --radius-sm: 8px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,11 +32,12 @@
     .lock-btn:hover { background: var(--accent-hover); }
     .lock-err { font-size: 12px; color: var(--red); height: 16px; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
 
     .layout { display: flex; min-height: 100vh; }
-    .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
-    .main { flex: 1; overflow-y: auto; padding: 32px; }
+    .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .main { flex: 1; overflow-y: auto; padding: 32px; max-width: 1200px; }
 
     .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
     .logo-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
@@ -51,12 +51,10 @@
     .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text-2); font-size: 13.5px; transition: all 0.15s; user-select: none; }
     .nav-item:hover { background: var(--surface-2); color: var(--text); }
     .nav-item.active { background: var(--accent-dim); color: var(--accent); font-weight: 500; }
-    .nav-item.active.ai-nav { background: var(--purple-dim); color: var(--purple); }
 
     .sidebar-actions { padding: 12px 20px 4px; display: flex; flex-direction: column; gap: 6px; }
     .sidebar-btn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: transparent; color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; font-family: inherit; width: 100%; }
     .sidebar-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-light); }
-    .sidebar-btn.import-btn:hover { border-color: var(--blue); color: var(--blue); }
     #import-file { display: none; }
 
     .sidebar-balance { padding: 16px 20px 0; border-top: 1px solid var(--border); }
@@ -64,21 +62,37 @@
     .balance-amount { font-size: 22px; font-weight: 700; color: var(--green); letter-spacing: -0.5px; }
     .balance-amount.neg { color: var(--red); }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
     .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
-    .stat-label { font-size: 12px; color: var(--text-3); margin-bottom: 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
-    .stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .stat-label { font-size: 11px; color: var(--text-3); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+    .stat-value { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
     .stat-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+    .stat-card.balance .stat-value { color: var(--green); }
+    .stat-card.balance.neg .stat-value { color: var(--red); }
     .stat-card.income .stat-value { color: var(--green); }
     .stat-card.expense .stat-value { color: var(--red); }
-    .stat-card.shreyan .stat-value { color: var(--accent); }
-    .stat-card.vismeid .stat-value { color: var(--blue); }
+    .stat-card.shreyans .stat-value { color: var(--accent); }
+    .stat-card.vismay .stat-value { color: var(--blue); }
+
+    /* Progress bar */
+    .stat-bar { margin-top: 10px; height: 3px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+    /* Income/expense split visual */
+    .split-visual { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
+    .split-visual-title { font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 12px; }
+    .split-bar-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 12px; }
+    .split-bar-label { width: 130px; color: var(--text-2); flex-shrink: 0; }
+    .split-bar-track { flex: 1; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+    .split-bar-fill { height: 100%; border-radius: 3px; }
+    .split-bar-val { width: 90px; text-align: right; font-weight: 600; flex-shrink: 0; }
 
     .page-header { margin-bottom: 24px; }
     .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
     .page-sub { color: var(--text-3); font-size: 13px; margin-top: 4px; }
 
-    .section { margin-bottom: 28px; }
+    .section { margin-bottom: 24px; }
     .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .section-title { font-size: 15px; font-weight: 600; }
 
@@ -93,11 +107,12 @@
     .form-input.invalid { border-color: var(--red); }
     .field-error { font-size: 11.5px; color: var(--red); margin-top: 2px; display: none; }
 
-    .type-toggle, .split-toggle { display: flex; gap: 8px; }
+    .type-toggle { display: flex; gap: 8px; }
     .toggle-btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; text-align: center; }
     .toggle-btn.sel-income { background: var(--green-dim); border-color: var(--green); color: var(--green); }
     .toggle-btn.sel-expense { background: var(--red-dim); border-color: var(--red); color: var(--red); }
     .split-btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; text-align: center; line-height: 1.4; }
+    .split-toggle { display: flex; gap: 8px; }
     .split-btn.sel-shared { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
     .split-btn.sel-shreyan { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 
@@ -121,7 +136,8 @@
     .tx-badge { font-size: 10.5px; font-weight: 500; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
     .badge-shared { background: var(--blue-dim); color: var(--blue); }
     .badge-shreyan { background: var(--accent-dim); color: var(--accent); }
-    .badge-expense { background: var(--red-dim); color: var(--red); }
+    .badge-expense-shared { background: var(--red-dim); color: var(--red); }
+    .badge-expense-solo { background: rgba(201,100,66,0.2); color: var(--accent); }
     .tx-amount { font-size: 14px; font-weight: 600; white-space: nowrap; }
     .tx-amount.income { color: var(--green); }
     .tx-amount.expense { color: var(--red); }
@@ -132,8 +148,8 @@
     .partner-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .partner-block { background: var(--surface-2); border-radius: var(--radius-sm); padding: 20px; border: 1px solid var(--border); }
     .partner-name { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
-    .partner-name.shreyan { color: var(--accent); }
-    .partner-name.vismeid { color: var(--blue); }
+    .partner-name.shreyans { color: var(--accent); }
+    .partner-name.vismay { color: var(--blue); }
     .calc-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
     .calc-row:last-of-type { border-bottom: none; }
     .calc-label { color: var(--text-2); }
@@ -144,6 +160,18 @@
     .brow:last-child { border-bottom: none; }
     .brow-label { color: var(--text-2); }
     .brow-value { font-weight: 600; }
+
+    /* Monthly P&L table */
+    .monthly-table { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .monthly-header { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 1fr; gap: 12px; padding: 11px 18px; border-bottom: 2px solid var(--border); background: var(--surface-2); }
+    .monthly-header span { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.4px; }
+    .monthly-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 1fr; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--border); transition: background 0.1s; align-items: center; }
+    .monthly-row:last-child { border-bottom: none; }
+    .monthly-row:hover { background: var(--surface-2); }
+    .monthly-row span { font-size: 13px; }
+    .monthly-month { font-weight: 600; color: var(--text); }
+    .monthly-total-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 1fr; gap: 12px; padding: 13px 18px; background: var(--surface-2); border-top: 2px solid var(--border-light); }
+    .monthly-total-row span { font-size: 13px; font-weight: 700; }
 
     .empty { text-align: center; padding: 48px 20px; color: var(--text-3); }
     .empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
@@ -156,48 +184,32 @@
     .view { display: none; }
     .view.active { display: block; }
 
-    /* Loading overlay */
+    /* Category breakdown */
+    .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .cat-title { font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 14px; }
+    .cat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 12.5px; }
+    .cat-label { flex: 1; color: var(--text-2); }
+    .cat-bar-wrap { width: 80px; height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+    .cat-bar-fill { height: 100%; border-radius: 2px; }
+    .cat-val { width: 80px; text-align: right; font-weight: 600; font-size: 12px; }
+
     #loading-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 16px; transition: opacity 0.3s; }
     #loading-overlay.hidden { opacity: 0; pointer-events: none; }
     .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color: var(--text-3); font-size: 13px; }
 
-    /* Toast */
     #toasts { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
     .toast { padding: 12px 18px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 500; color: #fff; opacity: 0; transform: translateY(6px); transition: all 0.2s ease; max-width: 300px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
     .toast.in { opacity: 1; transform: translateY(0); }
     .toast.ok { background: #2a5c42; border: 1px solid var(--green); }
     .toast.err { background: #5c2a2a; border: 1px solid var(--red); }
 
-    /* AI Chat */
-    .chat-wrap { display: flex; flex-direction: column; height: calc(100vh - 230px); min-height: 420px; }
-    .chat-msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 6px; padding-bottom: 4px; }
-    .chat-msg { display: flex; flex-direction: column; gap: 3px; max-width: 78%; }
-    .chat-msg.user { align-self: flex-end; align-items: flex-end; }
-    .chat-msg.assistant { align-self: flex-start; align-items: flex-start; }
-    .chat-bubble { padding: 12px 16px; border-radius: var(--radius); font-size: 13.5px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
-    .chat-bubble.user { background: var(--accent); color: #fff; border-bottom-right-radius: 3px; }
-    .chat-bubble.assistant { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 3px; }
-    .chat-sender { font-size: 10.5px; color: var(--text-3); padding: 0 4px; }
-    .chat-row { display: flex; gap: 10px; align-items: flex-end; padding: 16px 0 0; border-top: 1px solid var(--border); margin-top: 16px; }
-    .chat-in { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 10px 14px; font-size: 14px; outline: none; transition: border-color 0.15s; font-family: inherit; }
-    .chat-in:focus { border-color: var(--purple); }
-    .btn-ai { background: var(--purple); color: #fff; }
-    .btn-ai:hover:not(:disabled) { background: #b98ee0; }
-    .btn-ai:disabled { opacity: 0.5; cursor: not-allowed; }
-    .typing-bubble { display: flex; align-items: center; gap: 5px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); border-bottom-left-radius: 3px; width: fit-content; }
-    .typing-bubble span { width: 5px; height: 5px; background: var(--text-3); border-radius: 50%; animation: tbounce 1.2s infinite; display: block; }
-    .typing-bubble span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-bubble span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes tbounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
-    .suggest-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-    .suggest { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; font-family: inherit; }
-    .suggest:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-dim); }
-
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    @media (max-width: 900px) { .stats-grid { grid-template-columns: 1fr 1fr; } .form-row.three { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 1000px) { .stats-grid { grid-template-columns: 1fr 1fr; } .cat-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .form-row.three { grid-template-columns: 1fr 1fr; } .monthly-header, .monthly-row, .monthly-total-row { grid-template-columns: 1.2fr 1fr 1fr 1fr; } .monthly-header span:nth-child(5), .monthly-header span:nth-child(6), .monthly-row span:nth-child(5), .monthly-row span:nth-child(6), .monthly-total-row span:nth-child(5), .monthly-total-row span:nth-child(6) { display: none; } }
     @media (max-width: 640px) { .sidebar { display: none; } .main { padding: 16px; } .stats-grid { grid-template-columns: 1fr; } .partner-row { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -238,6 +250,10 @@
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>
         Partner Split
       </div>
+      <div class="nav-item" id="nav-monthly">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Monthly P&amp;L
+      </div>
     </div>
 
     <div class="nav-section">
@@ -247,16 +263,8 @@
         Add Transaction
       </div>
       <div class="nav-item" id="nav-history">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         History
-      </div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-label">Intelligence</div>
-      <div class="nav-item ai-nav" id="nav-ai">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        AI Assistant
       </div>
     </div>
 
@@ -265,15 +273,12 @@
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export Backup
       </button>
-      <label class="sidebar-btn import-btn" for="import-file">
+      <label class="sidebar-btn" for="import-file" style="cursor:pointer;">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="5" x2="12" y2="17"/></svg>
         Import Backup
       </label>
       <input type="file" id="import-file" accept=".json" />
-    </div>
-
-    <div style="padding: 8px 20px;">
-      <button class="sidebar-btn" id="btn-logout" style="border-color:var(--border);color:var(--text-3);">
+      <button class="sidebar-btn" id="btn-logout" style="color:var(--text-3);">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Lock
       </button>
@@ -291,14 +296,88 @@
     <div class="view active" id="view-dashboard">
       <div class="page-header">
         <div class="page-title">Dashboard</div>
-        <div class="page-sub">Agency financial overview</div>
+        <div class="page-sub">Agency financial overview — all time</div>
       </div>
-      <div class="stats-grid">
-        <div class="stat-card income"><div class="stat-label">Total Income</div><div class="stat-value" id="s-income">₹0</div><div class="stat-sub" id="s-income-sub">0 transactions</div></div>
-        <div class="stat-card expense"><div class="stat-label">Total Expenses</div><div class="stat-value" id="s-expense">₹0</div><div class="stat-sub" id="s-expense-sub">0 transactions</div></div>
-        <div class="stat-card shreyan"><div class="stat-label">Shreyan's Share</div><div class="stat-value" id="s-shreyan">₹0</div><div class="stat-sub">Net earnings</div></div>
-        <div class="stat-card vismeid"><div class="stat-label">Vismeid's Share</div><div class="stat-value" id="s-vismeid">₹0</div><div class="stat-sub">Net earnings</div></div>
+
+      <!-- Row 1: Core metrics -->
+      <div class="stats-grid" style="margin-bottom:14px;">
+        <div class="stat-card balance" id="card-balance">
+          <div class="stat-label">💰 Bank Balance</div>
+          <div class="stat-value" id="s-balance">₹0</div>
+          <div class="stat-sub">Total income minus expenses</div>
+          <div class="stat-bar"><div class="stat-bar-fill" id="bar-balance" style="background:var(--green);width:100%"></div></div>
+        </div>
+        <div class="stat-card income">
+          <div class="stat-label">↑ Total Income</div>
+          <div class="stat-value" id="s-income">₹0</div>
+          <div class="stat-sub" id="s-income-sub">0 transactions</div>
+          <div class="stat-bar"><div class="stat-bar-fill" id="bar-income" style="background:var(--green);width:0%"></div></div>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-label">↓ Total Expenses</div>
+          <div class="stat-value" id="s-expense">₹0</div>
+          <div class="stat-sub" id="s-expense-sub">0 transactions</div>
+          <div class="stat-bar"><div class="stat-bar-fill" id="bar-expense" style="background:var(--red);width:0%"></div></div>
+        </div>
       </div>
+
+      <!-- Row 2: Partner earnings -->
+      <div class="stats-grid" style="margin-bottom:24px;">
+        <div class="stat-card shreyans">
+          <div class="stat-label">🟠 Shreyans' Net</div>
+          <div class="stat-value" id="s-shreyans">₹0</div>
+          <div class="stat-sub">After expense deductions</div>
+        </div>
+        <div class="stat-card vismay">
+          <div class="stat-label">🔵 Vismay's Net</div>
+          <div class="stat-value" id="s-vismay">₹0</div>
+          <div class="stat-sub">After expense deductions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">📊 Transactions</div>
+          <div class="stat-value" id="s-txcount" style="color:var(--text)">0</div>
+          <div class="stat-sub" id="s-txsub">0 income · 0 expense</div>
+        </div>
+      </div>
+
+      <!-- Income & Expense breakdown visual -->
+      <div class="split-visual" id="split-visual">
+        <div class="split-visual-title">Breakdown</div>
+        <div class="split-bar-row">
+          <span class="split-bar-label">Shared Income (50/50)</span>
+          <div class="split-bar-track"><div class="stat-bar-fill split-bar-fill" id="bar-shared-inc" style="background:var(--green);width:0%"></div></div>
+          <span class="split-bar-val" id="lbl-shared-inc" style="color:var(--green)">₹0</span>
+        </div>
+        <div class="split-bar-row">
+          <span class="split-bar-label">Shreyans Solo Income</span>
+          <div class="split-bar-track"><div class="stat-bar-fill split-bar-fill" id="bar-solo-inc" style="background:var(--accent);width:0%"></div></div>
+          <span class="split-bar-val" id="lbl-solo-inc" style="color:var(--accent)">₹0</span>
+        </div>
+        <div class="split-bar-row">
+          <span class="split-bar-label">Shared Expenses (50/50)</span>
+          <div class="split-bar-track"><div class="stat-bar-fill split-bar-fill" id="bar-shared-exp" style="background:var(--red);width:0%"></div></div>
+          <span class="split-bar-val" id="lbl-shared-exp" style="color:var(--red)">₹0</span>
+        </div>
+        <div class="split-bar-row" style="margin-bottom:0">
+          <span class="split-bar-label">Shreyans Solo Expenses</span>
+          <div class="split-bar-track"><div class="stat-bar-fill split-bar-fill" id="bar-solo-exp" style="background:var(--accent);width:0%"></div></div>
+          <span class="split-bar-val" id="lbl-solo-exp" style="color:var(--accent)">₹0</span>
+        </div>
+      </div>
+
+      <!-- Category breakdown -->
+      <div class="cat-grid" style="margin-bottom:24px;">
+        <div class="cat-card">
+          <div class="cat-title">Top Income Sources</div>
+          <div id="cat-income-list"><div style="color:var(--text-3);font-size:13px;">No income yet</div></div>
+        </div>
+        <div class="cat-card">
+          <div class="cat-title">Top Expense Categories</div>
+          <div id="cat-expense-list"><div style="color:var(--text-3);font-size:13px;">No expenses yet</div></div>
+        </div>
+      </div>
+
+      <!-- Recent transactions -->
       <div class="section">
         <div class="section-header">
           <div class="section-title">Recent Transactions</div>
@@ -324,10 +403,10 @@
             </div>
           </div>
           <div class="form-group" id="split-group">
-            <div class="form-label">Income Split</div>
+            <div class="form-label" id="split-label">Split</div>
             <div class="split-toggle">
-              <div class="split-btn sel-shared" id="btn-shared">50 / 50<br><small>Both Partners</small></div>
-              <div class="split-btn" id="btn-shreyan-only">100% Shreyan<br><small>Solo Project</small></div>
+              <div class="split-btn sel-shared" id="btn-shared">50 / 50<br><small id="split-sub-shared">Both Partners</small></div>
+              <div class="split-btn" id="btn-shreyan-only"><span id="split-solo-label">100% Shreyans</span><br><small id="split-sub-solo">Solo Project</small></div>
             </div>
           </div>
         </div>
@@ -389,8 +468,8 @@
         <div class="chip active" data-f="all">All</div>
         <div class="chip" data-f="income">Income</div>
         <div class="chip" data-f="expense">Expenses</div>
-        <div class="chip" data-f="shared">50/50 Projects</div>
-        <div class="chip" data-f="shreyan">Shreyan Only</div>
+        <div class="chip" data-f="shared">50/50 Income</div>
+        <div class="chip" data-f="shreyan">Shreyans Solo</div>
       </div>
       <div class="tx-list" id="list-history"></div>
     </div>
@@ -399,14 +478,15 @@
     <div class="view" id="view-split">
       <div class="page-header">
         <div class="page-title">Partner Split Breakdown</div>
-        <div class="page-sub">How the money is distributed</div>
+        <div class="page-sub">Exact distribution between Shreyans and Vismay</div>
       </div>
       <div class="section">
         <div class="section-title" style="margin-bottom:14px;">Agency Financials</div>
         <div class="breakdown-card">
-          <div class="brow"><span class="brow-label">Shared Projects Income (50/50)</span><span class="brow-value" id="b-shared-inc" style="color:var(--green)">₹0</span></div>
-          <div class="brow"><span class="brow-label">Shreyan-only Income (100%)</span><span class="brow-value" id="b-shreyan-inc" style="color:var(--accent)">₹0</span></div>
-          <div class="brow"><span class="brow-label">Total Expenses</span><span class="brow-value" id="b-total-exp" style="color:var(--red)">₹0</span></div>
+          <div class="brow"><span class="brow-label">Shared Income (50/50)</span><span class="brow-value" id="b-shared-inc" style="color:var(--green)">₹0</span></div>
+          <div class="brow"><span class="brow-label">Shreyans-only Income (100%)</span><span class="brow-value" id="b-shreyans-inc" style="color:var(--accent)">₹0</span></div>
+          <div class="brow"><span class="brow-label">Shared Expenses (50/50)</span><span class="brow-value" id="b-shared-exp" style="color:var(--red)">₹0</span></div>
+          <div class="brow"><span class="brow-label">Shreyans-only Expenses (100%)</span><span class="brow-value" id="b-shreyans-exp" style="color:var(--accent)">₹0</span></div>
           <div class="brow" style="padding-top:14px;margin-top:4px;border-top:2px solid var(--border-light);border-bottom:none;">
             <span class="brow-label" style="font-weight:700;color:var(--text);font-size:14px;">Bank Balance</span>
             <span class="brow-value" id="b-balance" style="font-size:16px;color:var(--green)">₹0</span>
@@ -417,37 +497,32 @@
         <div class="section-title" style="margin-bottom:14px;">Per-Partner Breakdown</div>
         <div class="partner-row">
           <div class="partner-block">
-            <div class="partner-name shreyan">Shreyan</div>
-            <div class="calc-row"><span class="calc-label">50% of shared net</span><span id="p-sh-shared" style="color:var(--green);font-weight:600">₹0</span></div>
-            <div class="calc-row"><span class="calc-label">100% solo income</span><span id="p-sh-solo" style="color:var(--accent);font-weight:600">₹0</span></div>
-            <div class="calc-row"><span class="calc-label">50% of expenses</span><span id="p-sh-exp" style="color:var(--red);font-weight:600">₹0</span></div>
+            <div class="partner-name shreyans">Shreyans</div>
+            <div class="calc-row"><span class="calc-label">50% of shared income</span><span id="p-sh-shared-inc" style="color:var(--green);font-weight:600">₹0</span></div>
+            <div class="calc-row"><span class="calc-label">100% solo income</span><span id="p-sh-solo-inc" style="color:var(--accent);font-weight:600">₹0</span></div>
+            <div class="calc-row"><span class="calc-label">50% of shared expenses</span><span id="p-sh-shared-exp" style="color:var(--red);font-weight:600">₹0</span></div>
+            <div class="calc-row"><span class="calc-label">100% solo expenses</span><span id="p-sh-solo-exp" style="color:var(--red);font-weight:600">₹0</span></div>
             <div class="calc-total"><span>Net Earnings</span><span id="p-sh-net" style="font-size:18px;color:var(--green)">₹0</span></div>
           </div>
           <div class="partner-block">
-            <div class="partner-name vismeid">Vismeid</div>
-            <div class="calc-row"><span class="calc-label">50% of shared net</span><span id="p-vi-shared" style="color:var(--green);font-weight:600">₹0</span></div>
+            <div class="partner-name vismay">Vismay</div>
+            <div class="calc-row"><span class="calc-label">50% of shared income</span><span id="p-vi-shared-inc" style="color:var(--green);font-weight:600">₹0</span></div>
             <div class="calc-row"><span class="calc-label">Solo income (N/A)</span><span style="color:var(--text-3);font-weight:600">₹0</span></div>
-            <div class="calc-row"><span class="calc-label">50% of expenses</span><span id="p-vi-exp" style="color:var(--red);font-weight:600">₹0</span></div>
+            <div class="calc-row"><span class="calc-label">50% of shared expenses</span><span id="p-vi-shared-exp" style="color:var(--red);font-weight:600">₹0</span></div>
+            <div class="calc-row"><span class="calc-label">Solo expenses (N/A)</span><span style="color:var(--text-3);font-weight:600">₹0</span></div>
             <div class="calc-total"><span>Net Earnings</span><span id="p-vi-net" style="font-size:18px;color:var(--green)">₹0</span></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- AI Assistant -->
-    <div class="view" id="view-ai">
+    <!-- Monthly P&L -->
+    <div class="view" id="view-monthly">
       <div class="page-header">
-        <div class="page-title">AI Finance Assistant</div>
-        <div class="page-sub">Powered by Claude — ask anything about your agency finances</div>
+        <div class="page-title">Monthly P&amp;L</div>
+        <div class="page-sub">Profit &amp; Loss and partner earnings by month</div>
       </div>
-      <div class="suggest-row" id="ai-suggests"></div>
-      <div class="chat-wrap">
-        <div class="chat-msgs" id="chat-msgs"></div>
-        <div class="chat-row">
-          <input class="chat-in" id="chat-in" type="text" placeholder="Ask about splits, earnings, expenses…" autocomplete="off" />
-          <button class="btn btn-ai" id="btn-ask" style="flex-shrink:0;padding:10px 18px;">Ask Claude</button>
-        </div>
-      </div>
+      <div class="monthly-table" id="monthly-table-wrap"></div>
     </div>
 
   </main>
@@ -457,15 +532,13 @@
 
 <script>
 // ── Password Protection ────────────────────────────────────────────────────
-const PASSWORD = 'tbp2025'; // ← change this to your password
+const PASSWORD = 'tbp2025';
 
 function checkLock() {
-  const authed = localStorage.getItem('tbp_auth') === PASSWORD;
-  if (authed) {
+  if (localStorage.getItem('tbp_auth') === PASSWORD) {
     document.getElementById('lock-screen').classList.add('hidden');
   }
 }
-
 function unlock() {
   const input = document.getElementById('lock-input');
   const errEl = document.getElementById('lock-err');
@@ -480,23 +553,19 @@ function unlock() {
     setTimeout(() => input.classList.remove('shake'), 400);
   }
 }
-
 function lock() {
   localStorage.removeItem('tbp_auth');
   document.getElementById('lock-screen').classList.remove('hidden');
   document.getElementById('lock-input').value = '';
   document.getElementById('lock-err').textContent = '';
 }
-
 checkLock();
-
 document.getElementById('lock-btn').addEventListener('click', unlock);
 document.getElementById('lock-input').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
 
 // ── Supabase ───────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://nvnydtmsjinogimthvma.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52bnlkdG1zamlub2dpbXRodm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NzA0MzEsImV4cCI6MjA5MzU0NjQzMX0.pSha0WC4LhVOJYOonmHPBKHoUu-KFBkMN6UTJTqgWDc';
-
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -508,35 +577,35 @@ let currentFilter = 'all';
 let armedDelete = null;
 let armedTimer = null;
 let isSaving = false;
-let isAsking = false;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function today() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
-
 function inr(n) {
   if (!n || isNaN(n)) n = 0;
   const abs = Math.abs(n);
-  if (abs >= 10000000) return '₹' + (n/10000000).toFixed(2) + 'Cr';
-  if (abs >= 100000)   return '₹' + (n/100000).toFixed(2) + 'L';
-  if (abs >= 1000)     return '₹' + abs.toLocaleString('en-IN', {maximumFractionDigits:0});
-  return '₹' + abs.toFixed(2);
+  if (abs >= 10000000) return (n < 0 ? '-' : '') + '₹' + (abs/10000000).toFixed(2) + 'Cr';
+  if (abs >= 100000)   return (n < 0 ? '-' : '') + '₹' + (abs/100000).toFixed(2) + 'L';
+  if (abs >= 1000)     return (n < 0 ? '-' : '') + '₹' + abs.toLocaleString('en-IN', {maximumFractionDigits:0});
+  return (n < 0 ? '-' : '') + '₹' + abs.toFixed(2);
 }
-
 function inrFull(n) {
   if (isNaN(n)) n = 0;
   return '₹' + Math.abs(n).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
-
 function fmtDate(d) {
   try { return new Date(d + 'T12:00:00').toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}); }
   catch(e) { return d; }
 }
-
+function fmtMonth(ym) {
+  try { return new Date(ym + '-15').toLocaleDateString('en-IN', {month:'long', year:'numeric'}); }
+  catch(e) { return ym; }
+}
 function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
 function setColor(id, color) { const el = document.getElementById(id); if (el) el.style.color = color; }
+function setWidth(id, pct) { const el = document.getElementById(id); if (el) el.style.width = Math.min(100, Math.max(0, pct)) + '%'; }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
 function toast(msg, type = 'ok') {
@@ -548,7 +617,7 @@ function toast(msg, type = 'ok') {
   setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 300); }, 3500);
 }
 
-// ── Connection status ──────────────────────────────────────────────────────
+// ── Connection ─────────────────────────────────────────────────────────────
 function setConn(status) {
   const dot = document.getElementById('conn-dot');
   const label = document.getElementById('conn-label');
@@ -556,14 +625,12 @@ function setConn(status) {
   else if (status === 'offline') { dot.className = 'conn-dot offline'; label.textContent = 'Offline mode'; }
   else { dot.className = 'conn-dot'; label.textContent = 'Connecting…'; }
 }
-
-// ── Loading overlay ────────────────────────────────────────────────────────
 function hideLoading() {
   const ol = document.getElementById('loading-overlay');
   if (ol) { ol.classList.add('hidden'); setTimeout(() => ol.remove(), 400); }
 }
 
-// ── Supabase: Load all transactions ───────────────────────────────────────
+// ── Load data ──────────────────────────────────────────────────────────────
 async function loadData() {
   try {
     const { data, error } = await db.from('transactions').select('*').order('created_at', { ascending: true });
@@ -572,7 +639,6 @@ async function loadData() {
     setConn('online');
     try { localStorage.setItem('tbp_tx_cache', JSON.stringify(txns)); } catch(e) {}
   } catch(err) {
-    console.error('Supabase load error:', err);
     setConn('offline');
     try { txns = JSON.parse(localStorage.getItem('tbp_tx_cache') || '[]'); } catch(e) { txns = []; }
     toast('Could not reach database — showing cached data.', 'err');
@@ -583,21 +649,42 @@ async function loadData() {
 
 // ── Calculations ───────────────────────────────────────────────────────────
 function calc() {
-  let sharedInc = 0, shreyanInc = 0, totalExp = 0;
+  let sharedInc = 0, shreyansInc = 0, sharedExp = 0, shreyansExp = 0;
   txns.forEach(t => {
+    const amt = Number(t.amount);
     if (t.type === 'income') {
-      if (t.split === 'shared') sharedInc += Number(t.amount);
-      else shreyanInc += Number(t.amount);
+      if (t.split === 'shared') sharedInc += amt;
+      else shreyansInc += amt;
     } else {
-      totalExp += Number(t.amount);
+      // Backward compat: null or 'shared' → 50/50; 'shreyan' → 100% Shreyans
+      if (t.split === 'shreyan') shreyansExp += amt;
+      else sharedExp += amt;
     }
   });
-  const totalInc = sharedInc + shreyanInc;
+  const totalInc = sharedInc + shreyansInc;
+  const totalExp = sharedExp + shreyansExp;
   const balance = totalInc - totalExp;
-  const sharedNet = sharedInc - totalExp;
-  const vismeidNet = sharedNet / 2;
-  const shreyanNet = sharedNet / 2 + shreyanInc;
-  return { sharedInc, shreyanInc, totalInc, totalExp, balance, sharedNet, vismeidNet, shreyanNet };
+  const shreyansNet = (sharedInc / 2) + shreyansInc - (sharedExp / 2) - shreyansExp;
+  const vismayNet = (sharedInc / 2) - (sharedExp / 2);
+  return { sharedInc, shreyansInc, totalInc, sharedExp, shreyansExp, totalExp, balance, shreyansNet, vismayNet };
+}
+
+function calcMonth(monthTxns) {
+  let sharedInc = 0, shreyansInc = 0, sharedExp = 0, shreyansExp = 0;
+  monthTxns.forEach(t => {
+    const amt = Number(t.amount);
+    if (t.type === 'income') {
+      if (t.split === 'shared') sharedInc += amt; else shreyansInc += amt;
+    } else {
+      if (t.split === 'shreyan') shreyansExp += amt; else sharedExp += amt;
+    }
+  });
+  const totalInc = sharedInc + shreyansInc;
+  const totalExp = sharedExp + shreyansExp;
+  const net = totalInc - totalExp;
+  const shreyansNet = (sharedInc / 2) + shreyansInc - (sharedExp / 2) - shreyansExp;
+  const vismayNet = (sharedInc / 2) - (sharedExp / 2);
+  return { totalInc, totalExp, net, shreyansNet, vismayNet };
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -605,38 +692,85 @@ function render() {
   const s = calc();
   const incCount = txns.filter(t => t.type === 'income').length;
   const expCount = txns.filter(t => t.type === 'expense').length;
+  const maxBar = Math.max(s.totalInc, s.totalExp, 1);
 
+  // Sidebar
   set('sidebarBalance', inr(s.balance));
   const balEl = document.getElementById('sidebarBalance');
   if (balEl) balEl.className = 'balance-amount' + (s.balance < 0 ? ' neg' : '');
 
+  // Balance card
+  set('s-balance', inr(s.balance));
+  const balCard = document.getElementById('card-balance');
+  if (balCard) balCard.className = 'stat-card balance' + (s.balance < 0 ? ' neg' : '');
+  setColor('s-balance', s.balance < 0 ? 'var(--red)' : 'var(--green)');
+  setWidth('bar-balance', s.totalInc > 0 ? (s.balance / s.totalInc) * 100 : 0);
+
+  // Stats
   set('s-income', inr(s.totalInc));
   set('s-expense', inr(s.totalExp));
-  set('s-shreyan', inr(s.shreyanNet));
-  set('s-vismeid', inr(s.vismeidNet));
+  set('s-shreyans', inr(s.shreyansNet));
+  set('s-vismay', inr(s.vismayNet));
   set('s-income-sub', incCount + ' transaction' + (incCount !== 1 ? 's' : ''));
   set('s-expense-sub', expCount + ' transaction' + (expCount !== 1 ? 's' : ''));
+  set('s-txcount', txns.length);
+  set('s-txsub', incCount + ' income · ' + expCount + ' expense');
+  setColor('s-shreyans', s.shreyansNet < 0 ? 'var(--red)' : 'var(--accent)');
+  setColor('s-vismay', s.vismayNet < 0 ? 'var(--red)' : 'var(--blue)');
+  setWidth('bar-income', (s.totalInc / maxBar) * 100);
+  setWidth('bar-expense', (s.totalExp / maxBar) * 100);
 
+  // Breakdown bars
+  const maxAll = Math.max(s.sharedInc, s.shreyansInc, s.sharedExp, s.shreyansExp, 1);
+  set('lbl-shared-inc', inr(s.sharedInc)); setWidth('bar-shared-inc', (s.sharedInc / maxAll) * 100);
+  set('lbl-solo-inc', inr(s.shreyansInc)); setWidth('bar-solo-inc', (s.shreyansInc / maxAll) * 100);
+  set('lbl-shared-exp', inr(s.sharedExp)); setWidth('bar-shared-exp', (s.sharedExp / maxAll) * 100);
+  set('lbl-solo-exp', inr(s.shreyansExp)); setWidth('bar-solo-exp', (s.shreyansExp / maxAll) * 100);
+
+  // Category charts
+  renderCategoryChart('cat-income-list', txns.filter(t => t.type === 'income'), 'var(--green)');
+  renderCategoryChart('cat-expense-list', txns.filter(t => t.type === 'expense'), 'var(--red)');
+
+  // Partner split view
   set('b-shared-inc', inrFull(s.sharedInc));
-  set('b-shreyan-inc', inrFull(s.shreyanInc));
-  set('b-total-exp', inrFull(s.totalExp));
+  set('b-shreyans-inc', inrFull(s.shreyansInc));
+  set('b-shared-exp', inrFull(s.sharedExp));
+  set('b-shreyans-exp', inrFull(s.shreyansExp));
   set('b-balance', inrFull(s.balance));
   setColor('b-balance', s.balance < 0 ? 'var(--red)' : 'var(--green)');
 
-  const half = s.sharedNet > 0 ? s.sharedNet / 2 : 0;
-  set('p-sh-shared', inrFull(half));
-  set('p-sh-solo', inrFull(s.shreyanInc));
-  set('p-sh-exp', '−' + inrFull(s.totalExp / 2));
-  set('p-sh-net', inrFull(s.shreyanNet));
-  setColor('p-sh-net', s.shreyanNet < 0 ? 'var(--red)' : 'var(--green)');
+  set('p-sh-shared-inc', inrFull(s.sharedInc / 2));
+  set('p-sh-solo-inc', inrFull(s.shreyansInc));
+  set('p-sh-shared-exp', '−' + inrFull(s.sharedExp / 2));
+  set('p-sh-solo-exp', '−' + inrFull(s.shreyansExp));
+  set('p-sh-net', inrFull(s.shreyansNet));
+  setColor('p-sh-net', s.shreyansNet < 0 ? 'var(--red)' : 'var(--green)');
 
-  set('p-vi-shared', inrFull(half));
-  set('p-vi-exp', '−' + inrFull(s.totalExp / 2));
-  set('p-vi-net', inrFull(s.vismeidNet));
-  setColor('p-vi-net', s.vismeidNet < 0 ? 'var(--red)' : 'var(--green)');
+  set('p-vi-shared-inc', inrFull(s.sharedInc / 2));
+  set('p-vi-shared-exp', '−' + inrFull(s.sharedExp / 2));
+  set('p-vi-net', inrFull(s.vismayNet));
+  setColor('p-vi-net', s.vismayNet < 0 ? 'var(--red)' : 'var(--green)');
 
   renderList('list-recent', txns.slice(-6).reverse(), 'all');
   renderList('list-history', [...txns].reverse(), currentFilter);
+  renderMonthly();
+}
+
+function renderCategoryChart(id, list, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!list.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:13px;">None yet</div>'; return; }
+  const map = {};
+  list.forEach(t => { const k = t.category || t.client || 'Other'; map[k] = (map[k] || 0) + Number(t.amount); });
+  const sorted = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const max = sorted[0][1];
+  el.innerHTML = sorted.map(([k,v]) =>
+    `<div class="cat-row">
+      <span class="cat-label">${k}</span>
+      <div class="cat-bar-wrap"><div class="cat-bar-fill" style="background:${color};width:${(v/max)*100}%"></div></div>
+      <span class="cat-val" style="color:${color}">${inr(v)}</span>
+    </div>`
+  ).join('');
 }
 
 function renderList(id, list, filter) {
@@ -656,9 +790,16 @@ function renderList(id, list, filter) {
   }
   el.innerHTML = filtered.map(t => {
     const isInc = t.type === 'income';
-    const badge = isInc
-      ? (t.split === 'shared' ? '<span class="tx-badge badge-shared">50 / 50</span>' : '<span class="tx-badge badge-shreyan">100% Shreyan</span>')
-      : '<span class="tx-badge badge-expense">Expense</span>';
+    let badge = '';
+    if (isInc) {
+      badge = t.split === 'shared'
+        ? '<span class="tx-badge badge-shared">50/50</span>'
+        : '<span class="tx-badge badge-shreyan">Solo Shreyans</span>';
+    } else {
+      badge = t.split === 'shreyan'
+        ? '<span class="tx-badge badge-expense-solo">Shreyans Only</span>'
+        : '<span class="tx-badge badge-expense-shared">50/50</span>';
+    }
     const meta = [t.category, fmtDate(t.date), t.description].filter(Boolean).join(' · ');
     return `<div class="tx-item">
       <div class="tx-icon ${t.type}">${isInc ? '↑' : '↓'}</div>
@@ -668,13 +809,64 @@ function renderList(id, list, filter) {
       <button class="tx-del" data-id="${t.id}" title="Delete">✕</button>
     </div>`;
   }).join('');
-
   el.querySelectorAll('.tx-del').forEach(btn => {
     btn.addEventListener('click', e => handleDelete(e.currentTarget.getAttribute('data-id'), e.currentTarget));
   });
 }
 
-// ── Two-tap delete ─────────────────────────────────────────────────────────
+function renderMonthly() {
+  const el = document.getElementById('monthly-table-wrap');
+  if (!el) return;
+  if (!txns.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><div>No transactions yet.</div></div>';
+    return;
+  }
+  // Group by YYYY-MM
+  const monthMap = {};
+  txns.forEach(t => {
+    const ym = t.date ? t.date.substring(0, 7) : '';
+    if (!ym) return;
+    if (!monthMap[ym]) monthMap[ym] = [];
+    monthMap[ym].push(t);
+  });
+  const months = Object.keys(monthMap).sort().reverse();
+
+  let totInc = 0, totExp = 0, totNet = 0, totSh = 0, totVi = 0;
+
+  const rows = months.map(ym => {
+    const m = calcMonth(monthMap[ym]);
+    totInc += m.totalInc; totExp += m.totalExp; totNet += m.net; totSh += m.shreyansNet; totVi += m.vismayNet;
+    const netColor = m.net >= 0 ? 'var(--green)' : 'var(--red)';
+    const shColor = m.shreyansNet >= 0 ? 'var(--accent)' : 'var(--red)';
+    const viColor = m.vismayNet >= 0 ? 'var(--blue)' : 'var(--red)';
+    return `<div class="monthly-row">
+      <span class="monthly-month">${fmtMonth(ym)}</span>
+      <span style="color:var(--green)">${inrFull(m.totalInc)}</span>
+      <span style="color:var(--red)">${inrFull(m.totalExp)}</span>
+      <span style="color:${netColor};font-weight:700">${m.net >= 0 ? '+' : '−'}${inrFull(Math.abs(m.net))}</span>
+      <span style="color:${shColor};font-weight:600">${inrFull(m.shreyansNet)}</span>
+      <span style="color:${viColor};font-weight:600">${inrFull(m.vismayNet)}</span>
+    </div>`;
+  }).join('');
+
+  const totNetColor = totNet >= 0 ? 'var(--green)' : 'var(--red)';
+
+  el.innerHTML = `
+    <div class="monthly-header">
+      <span>Month</span><span>Income</span><span>Expenses</span><span>Net P&L</span><span>Shreyans</span><span>Vismay</span>
+    </div>
+    ${rows}
+    <div class="monthly-total-row">
+      <span style="color:var(--text)">Total</span>
+      <span style="color:var(--green)">${inrFull(totInc)}</span>
+      <span style="color:var(--red)">${inrFull(totExp)}</span>
+      <span style="color:${totNetColor}">${totNet >= 0 ? '+' : '−'}${inrFull(Math.abs(totNet))}</span>
+      <span style="color:var(--accent)">${inrFull(totSh)}</span>
+      <span style="color:var(--blue)">${inrFull(totVi)}</span>
+    </div>`;
+}
+
+// ── Delete ─────────────────────────────────────────────────────────────────
 async function handleDelete(id, btn) {
   if (armedDelete === id) {
     clearTimeout(armedTimer);
@@ -686,10 +878,7 @@ async function handleDelete(id, btn) {
       try { localStorage.setItem('tbp_tx_cache', JSON.stringify(txns)); } catch(e) {}
       toast('Transaction deleted.', 'err');
       render();
-    } catch(err) {
-      toast('Delete failed — ' + err.message, 'err');
-      render();
-    }
+    } catch(err) { toast('Delete failed — ' + err.message, 'err'); render(); }
   } else {
     if (armedDelete) {
       clearTimeout(armedTimer);
@@ -721,7 +910,19 @@ function setType(type) {
   currentType = type;
   document.getElementById('btn-income').className = 'toggle-btn' + (type === 'income' ? ' sel-income' : '');
   document.getElementById('btn-expense').className = 'toggle-btn' + (type === 'expense' ? ' sel-expense' : '');
-  document.getElementById('split-group').style.display = type === 'income' ? '' : 'none';
+  // Update split labels based on type
+  if (type === 'income') {
+    document.getElementById('split-label').textContent = 'Income Split';
+    document.getElementById('split-sub-shared').textContent = 'Both Partners';
+    document.getElementById('split-solo-label').textContent = '100% Shreyans';
+    document.getElementById('split-sub-solo').textContent = 'Solo Project';
+  } else {
+    document.getElementById('split-label').textContent = 'Expense Split';
+    document.getElementById('split-sub-shared').textContent = 'Both Partners';
+    document.getElementById('split-solo-label').textContent = '100% Shreyans';
+    document.getElementById('split-sub-solo').textContent = 'Shreyans Pays';
+  }
+  setSplit('shared');
 }
 
 function setSplit(split) {
@@ -745,7 +946,6 @@ async function addTransaction() {
   const errEl = document.getElementById('err-amount');
   const raw = amountEl ? amountEl.value : '';
   const amount = parseFloat(raw);
-
   if (!raw || isNaN(amount) || amount <= 0) {
     if (amountEl) amountEl.classList.add('invalid');
     if (errEl) errEl.style.display = 'block';
@@ -755,20 +955,15 @@ async function addTransaction() {
   if (amountEl) amountEl.classList.remove('invalid');
   if (errEl) errEl.style.display = 'none';
 
-  const dateEl = document.getElementById('f-date');
-  const catEl = document.getElementById('f-category');
-  const clientEl = document.getElementById('f-client');
-  const descEl = document.getElementById('f-desc');
-
   const tx = {
     id: Date.now().toString() + Math.floor(Math.random() * 999),
     type: currentType,
-    split: currentType === 'income' ? currentSplit : null,
+    split: currentSplit,
     amount: amount,
-    date: (dateEl && dateEl.value) ? dateEl.value : today(),
-    category: catEl ? catEl.value : '',
-    client: clientEl ? clientEl.value.trim() : '',
-    description: descEl ? descEl.value.trim() : ''
+    date: document.getElementById('f-date')?.value || today(),
+    category: document.getElementById('f-category')?.value || '',
+    client: document.getElementById('f-client')?.value.trim() || '',
+    description: document.getElementById('f-desc')?.value.trim() || ''
   };
 
   isSaving = true;
@@ -813,127 +1008,14 @@ async function importData(file) {
     if (error) throw error;
     await loadData();
     toast('Imported ' + imported.length + ' transactions!', 'ok');
-  } catch(err) {
-    toast('Import failed — ' + err.message, 'err');
-  }
+  } catch(err) { toast('Import failed — ' + err.message, 'err'); }
 }
 
-// ── AI Chat ────────────────────────────────────────────────────────────────
-const AI_SUGGESTS = [
-  'How are we doing overall?',
-  "What's Vismeid's net share?",
-  "What's Shreyan's total earnings?",
-  'Biggest expense categories?',
-  'How much income from solo projects?',
-  'Which partner earns more and by how much?'
-];
-
-function initAI() {
-  const row = document.getElementById('ai-suggests');
-  if (!row) return;
-  AI_SUGGESTS.forEach(q => {
-    const btn = document.createElement('button');
-    btn.className = 'suggest';
-    btn.textContent = q;
-    btn.addEventListener('click', () => askAI(q));
-    row.appendChild(btn);
-  });
-  appendChatMsg('assistant', "Hi! I'm your TBP Finance AI powered by Claude. I know your agency's split rules and current financials. Ask me anything — earnings, splits, expense analysis, or trends.");
-}
-
-function appendChatMsg(role, text) {
-  const container = document.getElementById('chat-msgs');
-  if (!container) return null;
-  const wrap = document.createElement('div');
-  wrap.className = 'chat-msg ' + role;
-  const bubble = document.createElement('div');
-  bubble.className = 'chat-bubble ' + role;
-  bubble.textContent = text;
-  const sender = document.createElement('div');
-  sender.className = 'chat-sender';
-  sender.textContent = role === 'user' ? 'You' : 'TBP AI (Claude)';
-  wrap.appendChild(bubble);
-  wrap.appendChild(sender);
-  container.appendChild(wrap);
-  container.scrollTop = container.scrollHeight;
-  return wrap;
-}
-
-function showTypingIndicator() {
-  const container = document.getElementById('chat-msgs');
-  if (!container) return null;
-  const wrap = document.createElement('div');
-  wrap.className = 'chat-msg assistant';
-  wrap.id = 'typing-wrap';
-  wrap.innerHTML = '<div class="typing-bubble"><span></span><span></span><span></span></div><div class="chat-sender">TBP AI (Claude)</div>';
-  container.appendChild(wrap);
-  container.scrollTop = container.scrollHeight;
-  return wrap;
-}
-
-function buildFinancialSummary() {
-  const s = calc();
-  const incTxns = txns.filter(t => t.type === 'income');
-  const expTxns = txns.filter(t => t.type === 'expense');
-  const catMap = {};
-  expTxns.forEach(t => { catMap[t.category || 'Uncategorized'] = (catMap[t.category || 'Uncategorized'] || 0) + Number(t.amount); });
-  const topCats = Object.entries(catMap).sort((a,b) => b[1]-a[1]).slice(0,3).map(([k,v]) => k + ': ₹' + v.toLocaleString('en-IN')).join(', ');
-  return [
-    'Total income: ₹' + s.totalInc.toLocaleString('en-IN'),
-    'Shared projects income (50/50 split): ₹' + s.sharedInc.toLocaleString('en-IN'),
-    'Shreyan-only income (100% Shreyan): ₹' + s.shreyanInc.toLocaleString('en-IN'),
-    'Total expenses: ₹' + s.totalExp.toLocaleString('en-IN'),
-    'Bank balance (total income − total expenses): ₹' + s.balance.toLocaleString('en-IN'),
-    'Shared net (shared income − all expenses): ₹' + s.sharedNet.toLocaleString('en-IN'),
-    "Shreyan's net earnings: ₹" + s.shreyanNet.toLocaleString('en-IN'),
-    "Vismeid's net earnings: ₹" + s.vismeidNet.toLocaleString('en-IN'),
-    'Total transactions: ' + txns.length + ' (' + incTxns.length + ' income, ' + expTxns.length + ' expense)',
-    topCats ? 'Top expense categories: ' + topCats : ''
-  ].filter(Boolean).join('\n');
-}
-
-async function askAI(question) {
-  if (isAsking || !question.trim()) return;
-  isAsking = true;
-
-  const input = document.getElementById('chat-in');
-  const sendBtn = document.getElementById('btn-ask');
-  if (input) input.value = '';
-  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Thinking…'; }
-
-  appendChatMsg('user', question);
-  const typingEl = showTypingIndicator();
-
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: question.trim(), financialSummary: buildFinancialSummary() })
-    });
-    const data = await res.json();
-    if (typingEl) typingEl.remove();
-    if (!res.ok) throw new Error(data.error || 'Request failed');
-    appendChatMsg('assistant', data.response);
-  } catch(err) {
-    if (typingEl) typingEl.remove();
-    let msg = err.message || 'Unknown error';
-    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-      msg = 'AI is unavailable when running locally. Deploy to Vercel and set ANTHROPIC_API_KEY to use this feature.';
-    }
-    appendChatMsg('assistant', 'Sorry, I ran into an issue: ' + msg);
-  } finally {
-    isAsking = false;
-    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Ask Claude'; }
-  }
-}
-
-// ── Wire up events ─────────────────────────────────────────────────────────
+// ── Events ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  [['nav-dashboard','dashboard'],['nav-split','split'],['nav-add','add'],['nav-history','history'],['nav-ai','ai']].forEach(([id, view]) => {
+  [['nav-dashboard','dashboard'],['nav-split','split'],['nav-monthly','monthly'],['nav-add','add'],['nav-history','history']].forEach(([id, view]) => {
     document.getElementById(id)?.addEventListener('click', () => showView(view));
   });
-
-  document.getElementById('btn-logout')?.addEventListener('click', lock);
   document.getElementById('btn-view-all')?.addEventListener('click', () => showView('history'));
   document.getElementById('btn-income')?.addEventListener('click', () => setType('income'));
   document.getElementById('btn-expense')?.addEventListener('click', () => setType('expense'));
@@ -942,19 +1024,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-add')?.addEventListener('click', addTransaction);
   document.getElementById('btn-clear')?.addEventListener('click', resetForm);
   document.getElementById('btn-export')?.addEventListener('click', exportData);
-
+  document.getElementById('btn-logout')?.addEventListener('click', lock);
   document.getElementById('f-amount')?.addEventListener('input', () => {
     document.getElementById('f-amount').classList.remove('invalid');
     document.getElementById('err-amount').style.display = 'none';
   });
-
   document.getElementById('f-date').value = today();
-
   document.getElementById('import-file')?.addEventListener('change', e => {
     const file = e.target.files[0];
     if (file) { importData(file); e.target.value = ''; }
   });
-
   document.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', function() {
       document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
@@ -963,20 +1042,6 @@ document.addEventListener('DOMContentLoaded', () => {
       renderList('list-history', [...txns].reverse(), currentFilter);
     });
   });
-
-  document.getElementById('btn-ask')?.addEventListener('click', () => {
-    const q = document.getElementById('chat-in')?.value?.trim();
-    if (q) askAI(q);
-  });
-
-  document.getElementById('chat-in')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      const q = e.target.value.trim();
-      if (q) askAI(q);
-    }
-  });
-
-  initAI();
   loadData();
 });
 </script>
