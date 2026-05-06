@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TBP Finance — Partner Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg: #1a1917; --surface: #242220; --surface-2: #2e2c2a;
@@ -194,6 +195,23 @@
     .cat-bar-fill { height: 100%; border-radius: 2px; }
     .cat-val { width: 80px; text-align: right; font-weight: 600; font-size: 12px; }
 
+    /* Chart */
+    .chart-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 24px; }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+    .chart-toggles { display: flex; gap: 6px; }
+    .chart-toggle { padding: 5px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; font-family: inherit; }
+    .chart-toggle:hover { border-color: var(--border-light); color: var(--text); }
+    .chart-toggle.ct-active { background: var(--surface-2); border-color: var(--border-light); color: var(--text); }
+    .chart-toggle.ct-in { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .chart-toggle.ct-out { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .chart-wrap { height: 280px; position: relative; }
+    /* MRR/ARR */
+    .mrr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+    .badge-pill { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
+    .badge-up { background: var(--green-dim); color: var(--green); }
+    .badge-down { background: var(--red-dim); color: var(--red); }
+    .badge-flat { background: var(--surface-2); color: var(--text-3); }
+
     /* Share page */
     .share-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
     .share-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; }
@@ -378,6 +396,38 @@
           <div class="stat-value" id="s-txcount" style="color:var(--text)">0</div>
           <div class="stat-sub" id="s-txsub">0 income · 0 expense</div>
         </div>
+      </div>
+
+      <!-- Row 3: MRR / ARR / MoM -->
+      <div class="mrr-grid" style="margin-bottom:24px;">
+        <div class="stat-card">
+          <div class="stat-label">📈 MRR</div>
+          <div class="stat-value" id="s-mrr" style="color:var(--green)">₹0</div>
+          <div class="stat-sub" id="s-mrr-sub">This month's revenue</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🚀 ARR</div>
+          <div class="stat-value" id="s-arr" style="color:var(--blue)">₹0</div>
+          <div class="stat-sub">Avg MRR × 12 (projected)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">📊 MoM Growth</div>
+          <div class="stat-value" id="s-mom" style="color:var(--text)">—</div>
+          <div id="s-mom-badge"></div>
+        </div>
+      </div>
+
+      <!-- Monthly chart -->
+      <div class="chart-section">
+        <div class="chart-header">
+          <div class="section-title">Monthly Revenue, Expenses &amp; Salary</div>
+          <div class="chart-toggles">
+            <button class="chart-toggle ct-active" id="ct-all">All</button>
+            <button class="chart-toggle" id="ct-in">↑ In</button>
+            <button class="chart-toggle" id="ct-out">↓ Out</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="dash-chart"></canvas></div>
       </div>
 
       <!-- Income & Expense breakdown visual -->
@@ -873,6 +923,8 @@ function render() {
   set('p-vi-net', inrFull(s.vismayNet));
   setColor('p-vi-net', s.vismayNet < 0 ? 'var(--red)' : 'var(--green)');
 
+  renderMRR();
+  renderDashboardChart();
   renderList('list-recent', txns.slice(-6).reverse(), 'all');
   renderList('list-history', [...txns].reverse(), currentFilter);
   renderMonthly();
@@ -987,6 +1039,167 @@ function renderMonthly() {
       <span style="color:var(--accent)">${inrFull(totSh)}</span>
       <span style="color:var(--blue)">${inrFull(totVi)}</span>
     </div>`;
+}
+
+// ── MRR / ARR ─────────────────────────────────────────────────────────────
+function calcMRR() {
+  const now = new Date();
+  const thisYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const prevDate = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const prevYM = prevDate.getFullYear() + '-' + String(prevDate.getMonth()+1).padStart(2,'0');
+
+  const monthMap = {};
+  txns.filter(t => t.type === 'income').forEach(t => {
+    if (!t.date) return;
+    const ym = t.date.substring(0, 7);
+    monthMap[ym] = (monthMap[ym] || 0) + Number(t.amount);
+  });
+
+  const months = Object.keys(monthMap).sort();
+  if (!months.length) return { mrr: 0, arr: 0, lastMRR: 0, growth: null };
+
+  const mrr = monthMap[thisYM] || monthMap[months[months.length - 1]] || 0;
+  const lastMRR = monthMap[prevYM] || 0;
+  const totalInc = Object.values(monthMap).reduce((a,b) => a+b, 0);
+  const avgMRR = totalInc / months.length;
+  const arr = avgMRR * 12;
+  const growth = lastMRR > 0 ? ((mrr - lastMRR) / lastMRR) * 100 : null;
+  return { mrr, arr, lastMRR, growth, avgMRR };
+}
+
+function renderMRR() {
+  const m = calcMRR();
+  set('s-mrr', inr(m.mrr));
+  set('s-arr', inr(m.arr));
+  const momEl = document.getElementById('s-mom');
+  const badgeEl = document.getElementById('s-mom-badge');
+  if (m.growth === null) {
+    if (momEl) { momEl.textContent = '—'; momEl.style.color = 'var(--text-3)'; }
+    if (badgeEl) badgeEl.innerHTML = '<span class="badge-pill badge-flat">No prev month</span>';
+  } else {
+    const pct = m.growth.toFixed(1);
+    const up = m.growth >= 0;
+    if (momEl) { momEl.textContent = (up ? '+' : '') + pct + '%'; momEl.style.color = up ? 'var(--green)' : 'var(--red)'; }
+    if (badgeEl) badgeEl.innerHTML = `<span class="badge-pill ${up ? 'badge-up' : 'badge-down'}">${up ? '▲' : '▼'} vs last month</span>`;
+  }
+}
+
+// ── Chart ──────────────────────────────────────────────────────────────────
+let dashChart = null;
+let chartView = 'all'; // 'all' | 'in' | 'out'
+
+function getChartData() {
+  const monthMap = {};
+  txns.forEach(t => {
+    if (!t.date) return;
+    const ym = t.date.substring(0, 7);
+    if (!monthMap[ym]) monthMap[ym] = { income: 0, expense: 0, salary: 0 };
+    if (t.type === 'income') monthMap[ym].income += Number(t.amount);
+    else if (t.type === 'expense') monthMap[ym].expense += Number(t.amount);
+    else if (t.type === 'salary') monthMap[ym].salary += Number(t.amount);
+  });
+  return monthMap;
+}
+
+function renderDashboardChart() {
+  const ctx = document.getElementById('dash-chart');
+  if (!ctx) return;
+
+  const monthMap = getChartData();
+  const months = Object.keys(monthMap).sort();
+  if (!months.length) return;
+
+  const labels = months.map(ym => {
+    const d = new Date(ym + '-15');
+    return d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+  });
+
+  const datasets = [];
+  if (chartView === 'all' || chartView === 'in') {
+    datasets.push({
+      label: 'Revenue',
+      data: months.map(ym => monthMap[ym].income),
+      backgroundColor: 'rgba(76,175,125,0.75)',
+      borderColor: '#4caf7d',
+      borderWidth: 1.5,
+      borderRadius: 5,
+      borderSkipped: false,
+    });
+  }
+  if (chartView === 'all' || chartView === 'out') {
+    datasets.push({
+      label: 'Expenses',
+      data: months.map(ym => monthMap[ym].expense),
+      backgroundColor: 'rgba(224,90,90,0.75)',
+      borderColor: '#e05a5a',
+      borderWidth: 1.5,
+      borderRadius: 5,
+      borderSkipped: false,
+    });
+    datasets.push({
+      label: 'Salary Drawn',
+      data: months.map(ym => monthMap[ym].salary),
+      backgroundColor: 'rgba(201,100,66,0.65)',
+      borderColor: '#c96442',
+      borderWidth: 1.5,
+      borderRadius: 5,
+      borderSkipped: false,
+    });
+  }
+
+  if (dashChart) { dashChart.destroy(); dashChart = null; }
+
+  Chart.defaults.color = '#6b6762';
+  Chart.defaults.borderColor = '#3d3b38';
+
+  dashChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: '#a8a49e', padding: 18, font: { size: 12 }, boxWidth: 12, boxHeight: 12 }
+        },
+        tooltip: {
+          backgroundColor: '#242220',
+          borderColor: '#3d3b38',
+          borderWidth: 1,
+          titleColor: '#ece9e3',
+          bodyColor: '#a8a49e',
+          padding: 12,
+          callbacks: {
+            label: c => '  ' + c.dataset.label + ': ₹' + Number(c.raw).toLocaleString('en-IN')
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#2e2c2a' },
+          ticks: { color: '#6b6762', font: { size: 11 } }
+        },
+        y: {
+          grid: { color: '#2e2c2a' },
+          ticks: {
+            color: '#6b6762',
+            font: { size: 11 },
+            callback: v => v >= 100000 ? '₹' + (v/100000).toFixed(1) + 'L' : v >= 1000 ? '₹' + (v/1000).toFixed(0) + 'k' : '₹' + v
+          }
+        }
+      }
+    }
+  });
+}
+
+function setChartView(view) {
+  chartView = view;
+  document.getElementById('ct-all').className = 'chart-toggle' + (view === 'all' ? ' ct-active' : '');
+  document.getElementById('ct-in').className = 'chart-toggle' + (view === 'in' ? ' ct-in' : '');
+  document.getElementById('ct-out').className = 'chart-toggle' + (view === 'out' ? ' ct-out' : '');
+  renderDashboardChart();
 }
 
 // ── Share & Withdraw ───────────────────────────────────────────────────────
@@ -1354,6 +1567,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-clear')?.addEventListener('click', resetForm);
   document.getElementById('btn-export')?.addEventListener('click', exportData);
   document.getElementById('btn-logout')?.addEventListener('click', lock);
+  document.getElementById('ct-all')?.addEventListener('click', () => setChartView('all'));
+  document.getElementById('ct-in')?.addEventListener('click', () => setChartView('in'));
+  document.getElementById('ct-out')?.addEventListener('click', () => setChartView('out'));
   document.getElementById('sb-salary')?.addEventListener('click', () => setShareEntryType('salary'));
   document.getElementById('sb-debt')?.addEventListener('click', () => setShareEntryType('debt'));
   document.getElementById('sb-to-shreyans')?.addEventListener('click', () => setSalaryRecipient('shreyans'));
