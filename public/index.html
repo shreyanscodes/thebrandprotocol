@@ -422,11 +422,11 @@
         <div class="stat-card balance" id="card-balance">
           <div class="stat-label">💰 Bank Balance</div>
           <div class="stat-value" id="s-balance">₹0</div>
-          <div class="stat-sub">Total income minus expenses</div>
+          <div class="stat-sub" id="s-balance-sub" style="color:var(--red)"></div>
           <div class="stat-bar"><div class="stat-bar-fill" id="bar-balance" style="background:var(--green);width:100%"></div></div>
         </div>
         <div class="stat-card income">
-          <div class="stat-label">↑ Total Income</div>
+          <div class="stat-label">↑ Cash Received (incl. GST)</div>
           <div class="stat-value" id="s-income">₹0</div>
           <div class="stat-sub" id="s-income-sub">0 transactions</div>
           <div class="stat-bar"><div class="stat-bar-fill" id="bar-income" style="background:var(--green);width:0%"></div></div>
@@ -1007,9 +1007,17 @@ async function loadData() {
 function calc() {
   let sharedInc = 0, shreyansInc = 0, sharedExp = 0, shreyansExp = 0;
   let totalSalary = 0, shreyansInv = 0, vismayInv = 0;
+  let cashInc = 0;   // actual cash that hit the bank (base + GST − TDS for GST invoices)
+  let gstOwed = 0;   // GST sitting in bank that belongs to govt (net = GST 18% − TDS 10% = 8%)
+
   txns.forEach(t => {
     const amt = Number(t.amount);
     if (t.type === 'income') {
+      const isGST = parseDesc(t.description).gst;
+      // Cash received: GST invoices = base × 1.08 (base + 18% − 10%), others = base
+      cashInc += isGST ? amt * 1.08 : amt;
+      if (isGST) gstOwed += amt * 0.08; // 8% net GST owed to govt from this invoice
+      // Partner profit split always on BASE invoice (GST isn't agency revenue)
       if (t.split === 'shared') sharedInc += amt;
       else shreyansInc += amt;
     } else if (t.type === 'expense') {
@@ -1018,22 +1026,21 @@ function calc() {
     } else if (t.type === 'salary') {
       totalSalary += amt;
     } else if (t.type === 'investment') {
-      // Capital put IN by a partner — increases bank balance
       if (t.split === 'shreyans') shreyansInv += amt;
       else vismayInv += amt;
     }
     // debt: shown on Share page only
   });
-  const totalInc = sharedInc + shreyansInc;
+  const totalInc = sharedInc + shreyansInc; // base invoice total (for P&L / partner split)
   const totalExp = sharedExp + shreyansExp;
   const totalInv = shreyansInv + vismayInv;
-  // Bank balance = income + investments − business expenses − salaries paid
-  const balance = totalInc + totalInv - totalExp - totalSalary;
-  // Partner profit allocation (from business only, before salary/investment)
+  // Bank balance = ACTUAL cash received (with GST/TDS) + investments − expenses − salaries
+  const balance = cashInc + totalInv - totalExp - totalSalary;
+  // Partner profit allocation stays on BASE amounts (GST is govt money)
   const shreyansNet = (sharedInc / 2) + shreyansInc - (sharedExp / 2) - shreyansExp;
   const vismayNet = (sharedInc / 2) - (sharedExp / 2);
-  return { sharedInc, shreyansInc, totalInc, sharedExp, shreyansExp, totalExp,
-           totalSalary, shreyansInv, vismayInv, totalInv, balance, shreyansNet, vismayNet };
+  return { sharedInc, shreyansInc, totalInc, cashInc, sharedExp, shreyansExp, totalExp,
+           totalSalary, shreyansInv, vismayInv, totalInv, balance, shreyansNet, vismayNet, gstOwed };
 }
 
 function calcMonth(monthTxns) {
@@ -1060,32 +1067,38 @@ function render() {
   const s = calc();
   const incCount = txns.filter(t => t.type === 'income').length;
   const expCount = txns.filter(t => t.type === 'expense').length;
-  const maxBar = Math.max(s.totalInc, s.totalExp, 1);
 
   // Sidebar
   set('sidebarBalance', inr(s.balance));
   const balEl = document.getElementById('sidebarBalance');
   if (balEl) balEl.className = 'balance-amount' + (s.balance < 0 ? ' neg' : '');
 
-  // Balance card
+  // Balance card — uses actual cash received (GST-adjusted)
   set('s-balance', inr(s.balance));
   const balCard = document.getElementById('card-balance');
   if (balCard) balCard.className = 'stat-card balance' + (s.balance < 0 ? ' neg' : '');
   setColor('s-balance', s.balance < 0 ? 'var(--red)' : 'var(--green)');
-  setWidth('bar-balance', s.totalInc > 0 ? (s.balance / s.totalInc) * 100 : 0);
+  setWidth('bar-balance', s.cashInc > 0 ? (s.balance / s.cashInc) * 100 : 0);
+  // Show GST liability note if there's GST owed
+  if (s.gstOwed > 0) {
+    set('s-balance-sub', 'incl. ' + inrFull(s.gstOwed) + ' GST owed to govt');
+  } else {
+    set('s-balance-sub', 'Cash in bank after expenses');
+  }
 
-  // Stats
-  set('s-income', inr(s.totalInc));
+  // Stats — income card shows actual cash received (base + GST − TDS)
+  const maxBar = Math.max(s.cashInc, s.totalExp, 1);
+  set('s-income', inr(s.cashInc));
   set('s-expense', inr(s.totalExp));
   set('s-shreyans', inr(s.shreyansNet));
   set('s-vismay', inr(s.vismayNet));
-  set('s-income-sub', incCount + ' transaction' + (incCount !== 1 ? 's' : ''));
+  set('s-income-sub', incCount + ' transaction' + (incCount !== 1 ? 's' : '') + (s.gstOwed > 0 ? ' · incl. GST' : ''));
   set('s-expense-sub', expCount + ' transaction' + (expCount !== 1 ? 's' : ''));
   set('s-txcount', txns.length);
   set('s-txsub', incCount + ' income · ' + expCount + ' expense');
   setColor('s-shreyans', s.shreyansNet < 0 ? 'var(--red)' : 'var(--accent)');
   setColor('s-vismay', s.vismayNet < 0 ? 'var(--red)' : 'var(--blue)');
-  setWidth('bar-income', (s.totalInc / maxBar) * 100);
+  setWidth('bar-income', (s.cashInc / maxBar) * 100);
   setWidth('bar-expense', (s.totalExp / maxBar) * 100);
 
   // Breakdown bars
