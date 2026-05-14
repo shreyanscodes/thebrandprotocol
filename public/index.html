@@ -249,6 +249,21 @@
     .sm-total { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr 1fr 1fr; gap: 8px; padding: 12px 16px; background: var(--surface-2); border-top: 2px solid var(--border-light); }
     .sm-total span { font-size: 12.5px; font-weight: 700; }
 
+    /* GST/TDS */
+    .gst-toggle-row { display: flex; align-items: center; gap: 10px; padding: 12px 0 4px; border-top: 1px solid var(--border); margin-top: 4px; }
+    .gst-toggle-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+    .gst-toggle-row label { font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-2); }
+    .gst-preview { background: var(--surface-2); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 10px; margin-bottom: 4px; }
+    .gst-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 13px; }
+    .gst-row-label { color: var(--text-2); }
+    .gst-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+    .gst-summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; }
+    .gst-summary-header { background: rgba(107,159,212,0.08); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .gst-summary-title { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; }
+    .gst-alert { background: rgba(224,90,90,0.08); border: 1px solid rgba(224,90,90,0.3); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin: 14px 0 0; }
+    .gst-alert-label { font-size: 13px; color: var(--text-2); }
+    .gst-alert-amount { font-size: 16px; font-weight: 800; color: var(--red); letter-spacing: -0.4px; }
+
     /* Tally */
     .tally-section { margin-bottom: 32px; }
     .tally-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 0 0 10px; margin-bottom: 0; display: flex; align-items: center; gap: 10px; }
@@ -578,6 +593,23 @@
             <input type="text" class="form-input" id="f-desc" placeholder="Brief note…" />
           </div>
         </div>
+        <!-- GST/TDS toggle — income only -->
+        <div id="gst-panel" style="display:none;">
+          <div class="gst-toggle-row">
+            <input type="checkbox" id="gst-toggle" />
+            <label for="gst-toggle">18% GST + 10% TDS applicable on this invoice</label>
+          </div>
+          <div id="gst-breakdown" style="display:none;">
+            <div class="gst-preview">
+              <div class="gst-row"><span class="gst-row-label">Invoice Base Amount</span><span id="gst-base" style="font-weight:600">₹0</span></div>
+              <div class="gst-row"><span class="gst-row-label">+ GST @ 18%</span><span id="gst-amt" style="color:var(--blue);font-weight:600">₹0</span></div>
+              <div class="gst-row"><span class="gst-row-label">− TDS @ 10%</span><span id="tds-amt" style="color:var(--red);font-weight:600">₹0</span></div>
+              <hr class="gst-divider"/>
+              <div class="gst-row"><span class="gst-row-label" style="font-weight:600;color:var(--text)">Cash Received in Bank</span><span id="gst-received" style="color:var(--green);font-weight:700;font-size:14px">₹0</span></div>
+              <div class="gst-row" style="margin-top:4px;"><span class="gst-row-label">Net GST to Pay Govt</span><span id="gst-net" style="color:var(--red);font-weight:600">₹0</span></div>
+            </div>
+          </div>
+        </div>
         <div class="form-actions">
           <button class="btn btn-ghost" id="btn-clear">Clear</button>
           <button class="btn btn-primary" id="btn-add">Add Transaction</button>
@@ -667,6 +699,19 @@
           <span style="margin-left:auto;font-size:15px;font-weight:800;letter-spacing:-0.4px;" id="tally-inc-total">₹0</span>
         </div>
         <div class="tally-table" id="tally-income-table"></div>
+      </div>
+
+      <!-- GST/TDS Summary -->
+      <div class="tally-section" id="gst-section" style="display:none;">
+        <div class="tally-section-title" style="color:var(--blue);">
+          💼 GST / TDS Summary
+          <span class="tally-badge" style="background:var(--blue-dim);color:var(--blue)" id="tally-gst-count">0 entries</span>
+        </div>
+        <div class="tally-table" id="tally-gst-table"></div>
+        <div class="gst-alert" id="gst-alert">
+          <span class="gst-alert-label">⚠️ Total Net GST to Pay Government</span>
+          <span class="gst-alert-amount" id="gst-total-net">₹0</span>
+        </div>
       </div>
 
       <!-- Expenses section -->
@@ -1048,7 +1093,7 @@ function renderList(id, list, filter) {
         ? '<span class="tx-badge badge-expense-solo">Shreyans Only</span>'
         : '<span class="tx-badge badge-expense-shared">50/50</span>';
     }
-    const meta = [t.category, fmtDate(t.date), t.description].filter(Boolean).join(' · ');
+    const meta = [t.category, fmtDate(t.date), parseDesc(t.description).note].filter(Boolean).join(' · ');
     return `<div class="tx-item">
       <div class="tx-icon ${t.type}">${isInc ? '↑' : '↓'}</div>
       <div><div class="tx-name">${t.client || t.description || 'Unnamed'}</div><div class="tx-meta">${meta}</div></div>
@@ -1275,6 +1320,26 @@ function setChartView(view) {
   renderDashboardChart();
 }
 
+// ── GST / TDS Helpers ─────────────────────────────────────────────────────
+function parseDesc(raw) {
+  if (!raw) return { gst: false, note: '' };
+  try { const p = JSON.parse(raw); return { gst: !!p.gst, note: p.note || '' }; }
+  catch { return { gst: false, note: raw }; }
+}
+
+function updateGSTPreview() {
+  const amt = parseFloat(document.getElementById('f-amount')?.value) || 0;
+  const gst = amt * 0.18;
+  const tds = amt * 0.10;
+  const received = amt + gst - tds;
+  const netGST = gst - tds;
+  set('gst-base', inrFull(amt));
+  set('gst-amt', '+' + inrFull(gst));
+  set('tds-amt', '−' + inrFull(tds));
+  set('gst-received', inrFull(received));
+  set('gst-net', inrFull(netGST));
+}
+
 // ── Tally ──────────────────────────────────────────────────────────────────
 function renderTally() {
   const incomes = txns.filter(t => t.type === 'income').slice().reverse();
@@ -1293,12 +1358,14 @@ function renderTally() {
       <span>#</span><span>Client / Project</span><span>Category</span><span>Date</span><span>Split</span><span style="text-align:right">Amount</span>
     </div>`;
     const rows = incomes.map((t, i) => {
+      const d = parseDesc(t.description);
       const splitBadge = t.split === 'shared'
         ? `<span style="color:var(--blue);font-size:11px;font-weight:600;">50/50</span>`
         : `<span style="color:var(--accent);font-size:11px;font-weight:600;">Solo</span>`;
+      const gstTag = d.gst ? `<span style="font-size:10px;font-weight:600;background:var(--blue-dim);color:var(--blue);padding:1px 5px;border-radius:4px;margin-left:4px;">GST</span>` : '';
       return `<div class="tally-row tally-inc-cols">
         <span class="tally-num">${incomes.length - i}</span>
-        <span style="font-weight:500">${t.client || t.description || '—'}</span>
+        <span style="font-weight:500">${t.client || d.note || '—'}${gstTag}</span>
         <span style="color:var(--text-2)">${t.category || '—'}</span>
         <span style="color:var(--text-3)">${fmtDate(t.date)}</span>
         <span>${splitBadge}</span>
@@ -1310,6 +1377,44 @@ function renderTally() {
       <span style="color:var(--green);justify-content:flex-end">${inrFull(incTotal)}</span>
     </div>`;
     if (incTable) incTable.innerHTML = header + rows + footer;
+  }
+
+  // ── GST/TDS Summary ──
+  const gstTxns = incomes.filter(t => parseDesc(t.description).gst);
+  const gstSection = document.getElementById('gst-section');
+  if (gstSection) gstSection.style.display = gstTxns.length ? '' : 'none';
+
+  if (gstTxns.length) {
+    set('tally-gst-count', gstTxns.length + ' entr' + (gstTxns.length === 1 ? 'y' : 'ies'));
+    const gstTable = document.getElementById('tally-gst-table');
+    let totBase = 0, totGST = 0, totTDS = 0, totRec = 0, totNet = 0;
+    const gstHeader = `<div class="tally-thead" style="grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 1fr;">
+      <span>Client / Project</span><span>Date</span><span style="text-align:right">Invoice Base</span><span style="text-align:right">GST (18%)</span><span style="text-align:right">TDS (10%)</span><span style="text-align:right">Net GST to Govt</span>
+    </div>`;
+    const gstRows = gstTxns.map(t => {
+      const base = Number(t.amount);
+      const gst = base * 0.18;
+      const tds = base * 0.10;
+      const net = gst - tds;
+      totBase += base; totGST += gst; totTDS += tds; totNet += net;
+      return `<div class="tally-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 1fr;">
+        <span style="font-weight:500">${t.client || parseDesc(t.description).note || '—'}</span>
+        <span style="color:var(--text-3)">${fmtDate(t.date)}</span>
+        <span style="justify-content:flex-end;font-weight:600">${inrFull(base)}</span>
+        <span style="justify-content:flex-end;color:var(--blue);font-weight:600">+${inrFull(gst)}</span>
+        <span style="justify-content:flex-end;color:var(--red);font-weight:600">−${inrFull(tds)}</span>
+        <span style="justify-content:flex-end;color:var(--red);font-weight:700">${inrFull(net)}</span>
+      </div>`;
+    }).join('');
+    const gstFooter = `<div class="tally-total-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 1fr;">
+      <span>Total</span><span></span>
+      <span style="color:var(--text);justify-content:flex-end">${inrFull(totBase)}</span>
+      <span style="color:var(--blue);justify-content:flex-end">+${inrFull(totGST)}</span>
+      <span style="color:var(--red);justify-content:flex-end">−${inrFull(totTDS)}</span>
+      <span style="color:var(--red);justify-content:flex-end">${inrFull(totNet)}</span>
+    </div>`;
+    if (gstTable) gstTable.innerHTML = gstHeader + gstRows + gstFooter;
+    set('gst-total-net', inrFull(totNet));
   }
 
   // ── Expenses month-wise ──
@@ -1622,6 +1727,12 @@ function setType(type) {
   document.getElementById('btn-income').className = 'toggle-btn' + (type === 'income' ? ' sel-income' : '');
   document.getElementById('btn-expense').className = 'toggle-btn' + (type === 'expense' ? ' sel-expense' : '');
   document.getElementById('btn-investment').className = 'toggle-btn' + (type === 'investment' ? ' sel-investment' : '');
+  const gstPanel = document.getElementById('gst-panel');
+  if (gstPanel) gstPanel.style.display = type === 'income' ? '' : 'none';
+  if (type !== 'income') {
+    const gt = document.getElementById('gst-toggle'); if (gt) gt.checked = false;
+    const gb = document.getElementById('gst-breakdown'); if (gb) gb.style.display = 'none';
+  }
   const splitGroup = document.getElementById('split-group');
   const investorGroup = document.getElementById('investor-group');
   if (type === 'investment') {
@@ -1664,6 +1775,8 @@ function resetForm() {
   const fc = document.getElementById('f-category'); if (fc) fc.value = '';
   const ea = document.getElementById('err-amount'); if (ea) ea.style.display = 'none';
   setType('income'); setSplit('shared'); setInvestor('shreyans');
+  const gt = document.getElementById('gst-toggle'); if (gt) gt.checked = false;
+  const gb = document.getElementById('gst-breakdown'); if (gb) gb.style.display = 'none';
 }
 
 async function addTransaction() {
@@ -1689,7 +1802,11 @@ async function addTransaction() {
     date: document.getElementById('f-date')?.value || today(),
     category: document.getElementById('f-category')?.value || '',
     client: document.getElementById('f-client')?.value.trim() || '',
-    description: document.getElementById('f-desc')?.value.trim() || ''
+    description: (() => {
+      const note = document.getElementById('f-desc')?.value.trim() || '';
+      const gst = currentType === 'income' && document.getElementById('gst-toggle')?.checked;
+      return gst ? JSON.stringify({ gst: true, note }) : note;
+    })()
   };
 
   isSaving = true;
@@ -1768,6 +1885,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-amount')?.addEventListener('input', () => {
     document.getElementById('f-amount').classList.remove('invalid');
     document.getElementById('err-amount').style.display = 'none';
+    if (document.getElementById('gst-toggle')?.checked) updateGSTPreview();
+  });
+
+  document.getElementById('gst-toggle')?.addEventListener('change', function() {
+    const bd = document.getElementById('gst-breakdown');
+    if (bd) bd.style.display = this.checked ? '' : 'none';
+    if (this.checked) updateGSTPreview();
   });
   document.getElementById('f-date').value = today();
   document.getElementById('import-file')?.addEventListener('change', e => {
