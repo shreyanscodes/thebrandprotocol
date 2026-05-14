@@ -249,6 +249,28 @@
     .sm-total { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr 1fr 1fr; gap: 8px; padding: 12px 16px; background: var(--surface-2); border-top: 2px solid var(--border-light); }
     .sm-total span { font-size: 12.5px; font-weight: 700; }
 
+    /* Tally */
+    .tally-section { margin-bottom: 32px; }
+    .tally-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 0 0 10px; margin-bottom: 0; display: flex; align-items: center; gap: 10px; }
+    .tally-section-title .tally-badge { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; }
+    .tally-table { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .tally-thead { display: grid; gap: 0; background: var(--surface-2); border-bottom: 2px solid var(--border); }
+    .tally-thead span { font-size: 10.5px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 16px; }
+    .tally-row { display: grid; gap: 0; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .tally-row:last-child { border-bottom: none; }
+    .tally-row:hover { background: var(--surface-2); }
+    .tally-row span { font-size: 13px; padding: 12px 16px; display: flex; align-items: center; }
+    .tally-total-row { display: grid; gap: 0; background: var(--surface-2); border-top: 2px solid var(--border-light); }
+    .tally-total-row span { font-size: 13px; font-weight: 700; padding: 12px 16px; }
+    /* Income table: # | Client | Category | Date | Split | Amount */
+    .tally-inc-cols { grid-template-columns: 36px 1.5fr 1fr 1fr 100px 1fr; }
+    /* Expense table: # | Description | Category | Date | Split | Amount */
+    .tally-exp-cols { grid-template-columns: 36px 1.5fr 1fr 1fr 120px 1fr; }
+    .tally-month-block { margin-bottom: 16px; }
+    .tally-month-label { font-size: 12px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 0 8px; display: flex; align-items: center; justify-content: space-between; }
+    .tally-month-label span:last-child { font-size: 13px; color: var(--red); letter-spacing: 0; text-transform: none; font-weight: 700; }
+    .tally-num { color: var(--text-3); font-size: 11px; }
+
     #loading-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 16px; transition: opacity 0.3s; }
     #loading-overlay.hidden { opacity: 0; pointer-events: none; }
     .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -312,6 +334,12 @@
       <div class="nav-item" id="nav-share">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         Share &amp; Withdraw
+      </div>
+    </div>
+
+      <div class="nav-item" id="nav-tally">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Tally
       </div>
     </div>
 
@@ -622,6 +650,34 @@
         <div class="page-sub">Profit &amp; Loss and partner earnings by month</div>
       </div>
       <div class="monthly-table" id="monthly-table-wrap"></div>
+    </div>
+
+    <!-- Tally -->
+    <div class="view" id="view-tally">
+      <div class="page-header">
+        <div class="page-title">Tally</div>
+        <div class="page-sub">All income in one place · Expenses grouped by month</div>
+      </div>
+
+      <!-- Income section -->
+      <div class="tally-section">
+        <div class="tally-section-title" style="color:var(--green);">
+          ↑ All Income
+          <span class="tally-badge" style="background:var(--green-dim);color:var(--green)" id="tally-inc-count">0 entries</span>
+          <span style="margin-left:auto;font-size:15px;font-weight:800;letter-spacing:-0.4px;" id="tally-inc-total">₹0</span>
+        </div>
+        <div class="tally-table" id="tally-income-table"></div>
+      </div>
+
+      <!-- Expenses section -->
+      <div class="tally-section">
+        <div class="tally-section-title" style="color:var(--red);">
+          ↓ Expenses — Month by Month
+          <span class="tally-badge" style="background:var(--red-dim);color:var(--red)" id="tally-exp-count">0 entries</span>
+          <span style="margin-left:auto;font-size:15px;font-weight:800;letter-spacing:-0.4px;" id="tally-exp-total">₹0</span>
+        </div>
+        <div id="tally-expense-blocks"></div>
+      </div>
     </div>
 
     <!-- Share & Withdraw -->
@@ -944,6 +1000,7 @@ function render() {
   renderList('list-recent', txns.slice(-6).reverse(), 'all');
   renderList('list-history', [...txns].reverse(), currentFilter);
   renderMonthly();
+  renderTally();
   renderShare();
 }
 
@@ -1216,6 +1273,99 @@ function setChartView(view) {
   document.getElementById('ct-in').className = 'chart-toggle' + (view === 'in' ? ' ct-in' : '');
   document.getElementById('ct-out').className = 'chart-toggle' + (view === 'out' ? ' ct-out' : '');
   renderDashboardChart();
+}
+
+// ── Tally ──────────────────────────────────────────────────────────────────
+function renderTally() {
+  const incomes = txns.filter(t => t.type === 'income').slice().reverse();
+  const expenses = txns.filter(t => t.type === 'expense').slice().reverse();
+
+  // ── Income table ──
+  const incTable = document.getElementById('tally-income-table');
+  const incTotal = incomes.reduce((s, t) => s + Number(t.amount), 0);
+  set('tally-inc-count', incomes.length + ' entr' + (incomes.length === 1 ? 'y' : 'ies'));
+  set('tally-inc-total', inrFull(incTotal));
+
+  if (!incomes.length) {
+    if (incTable) incTable.innerHTML = '<div class="empty"><div class="empty-icon">📥</div><div>No income recorded yet.</div></div>';
+  } else {
+    const header = `<div class="tally-thead tally-inc-cols">
+      <span>#</span><span>Client / Project</span><span>Category</span><span>Date</span><span>Split</span><span style="text-align:right">Amount</span>
+    </div>`;
+    const rows = incomes.map((t, i) => {
+      const splitBadge = t.split === 'shared'
+        ? `<span style="color:var(--blue);font-size:11px;font-weight:600;">50/50</span>`
+        : `<span style="color:var(--accent);font-size:11px;font-weight:600;">Solo</span>`;
+      return `<div class="tally-row tally-inc-cols">
+        <span class="tally-num">${incomes.length - i}</span>
+        <span style="font-weight:500">${t.client || t.description || '—'}</span>
+        <span style="color:var(--text-2)">${t.category || '—'}</span>
+        <span style="color:var(--text-3)">${fmtDate(t.date)}</span>
+        <span>${splitBadge}</span>
+        <span style="color:var(--green);font-weight:700;justify-content:flex-end">+${inrFull(t.amount)}</span>
+      </div>`;
+    }).join('');
+    const footer = `<div class="tally-total-row tally-inc-cols">
+      <span></span><span>Total</span><span></span><span></span><span></span>
+      <span style="color:var(--green);justify-content:flex-end">${inrFull(incTotal)}</span>
+    </div>`;
+    if (incTable) incTable.innerHTML = header + rows + footer;
+  }
+
+  // ── Expenses month-wise ──
+  const expContainer = document.getElementById('tally-expense-blocks');
+  const expTotal = expenses.reduce((s, t) => s + Number(t.amount), 0);
+  set('tally-exp-count', expenses.length + ' entr' + (expenses.length === 1 ? 'y' : 'ies'));
+  set('tally-exp-total', inrFull(expTotal));
+
+  if (!expenses.length) {
+    if (expContainer) expContainer.innerHTML = '<div class="empty"><div class="empty-icon">📤</div><div>No expenses recorded yet.</div></div>';
+    return;
+  }
+
+  // Group by month
+  const monthMap = {};
+  expenses.forEach(t => {
+    const ym = t.date ? t.date.substring(0, 7) : 'Unknown';
+    if (!monthMap[ym]) monthMap[ym] = [];
+    monthMap[ym].push(t);
+  });
+  const months = Object.keys(monthMap).sort().reverse();
+
+  const blocks = months.map(ym => {
+    const mTxns = monthMap[ym];
+    const mTotal = mTxns.reduce((s, t) => s + Number(t.amount), 0);
+    const rows = mTxns.map((t, i) => {
+      const splitLabel = t.split === 'shreyan'
+        ? `<span style="color:var(--accent);font-size:11px;font-weight:600;">Shreyans</span>`
+        : `<span style="color:var(--text-3);font-size:11px;font-weight:600;">50/50</span>`;
+      return `<div class="tally-row tally-exp-cols">
+        <span class="tally-num">${i + 1}</span>
+        <span style="font-weight:500">${t.client || t.description || '—'}</span>
+        <span style="color:var(--text-2)">${t.category || '—'}</span>
+        <span style="color:var(--text-3)">${fmtDate(t.date)}</span>
+        <span>${splitLabel}</span>
+        <span style="color:var(--red);font-weight:700;justify-content:flex-end">−${inrFull(t.amount)}</span>
+      </div>`;
+    }).join('');
+    const footer = `<div class="tally-total-row tally-exp-cols">
+      <span></span><span>${fmtMonth(ym)} Total</span><span></span><span></span><span></span>
+      <span style="color:var(--red);justify-content:flex-end">${inrFull(mTotal)}</span>
+    </div>`;
+    return `<div class="tally-month-block">
+      <div class="tally-month-label">
+        <span>${fmtMonth(ym)}</span>
+        <span>−${inrFull(mTotal)}</span>
+      </div>
+      <div class="tally-table">${
+        `<div class="tally-thead tally-exp-cols">
+          <span>#</span><span>Description</span><span>Category</span><span>Date</span><span>Split</span><span style="text-align:right">Amount</span>
+        </div>`
+      }${rows}${footer}</div>
+    </div>`;
+  }).join('');
+
+  if (expContainer) expContainer.innerHTML = blocks;
 }
 
 // ── Share & Withdraw ───────────────────────────────────────────────────────
@@ -1590,7 +1740,7 @@ async function importData(file) {
 
 // ── Events ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  [['nav-dashboard','dashboard'],['nav-split','split'],['nav-monthly','monthly'],['nav-share','share'],['nav-add','add'],['nav-history','history']].forEach(([id, view]) => {
+  [['nav-dashboard','dashboard'],['nav-split','split'],['nav-monthly','monthly'],['nav-tally','tally'],['nav-share','share'],['nav-add','add'],['nav-history','history']].forEach(([id, view]) => {
     document.getElementById(id)?.addEventListener('click', () => showView(view));
   });
   document.getElementById('btn-view-all')?.addEventListener('click', () => showView('history'));
