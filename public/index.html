@@ -112,6 +112,7 @@
     .toggle-btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; text-align: center; }
     .toggle-btn.sel-income { background: var(--green-dim); border-color: var(--green); color: var(--green); }
     .toggle-btn.sel-expense { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .toggle-btn.sel-investment { background: rgba(107,159,212,0.15); border-color: var(--blue); color: var(--blue); }
     .split-btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; text-align: center; line-height: 1.4; }
     .split-toggle { display: flex; gap: 8px; }
     .split-btn.sel-shared { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
@@ -490,6 +491,7 @@
             <div class="type-toggle">
               <div class="toggle-btn sel-income" id="btn-income">↑ Income</div>
               <div class="toggle-btn" id="btn-expense">↓ Expense</div>
+              <div class="toggle-btn" id="btn-investment">⬆ Investment</div>
             </div>
           </div>
           <div class="form-group" id="split-group">
@@ -497,6 +499,13 @@
             <div class="split-toggle">
               <div class="split-btn sel-shared" id="btn-shared">50 / 50<br><small id="split-sub-shared">Both Partners</small></div>
               <div class="split-btn" id="btn-shreyan-only"><span id="split-solo-label">100% Shreyans</span><br><small id="split-sub-solo">Solo Project</small></div>
+            </div>
+          </div>
+          <div class="form-group" id="investor-group" style="display:none;">
+            <div class="form-label">Invested By</div>
+            <div class="split-toggle">
+              <div class="split-btn sel-shreyan" id="btn-inv-shreyans">🟠 Shreyans</div>
+              <div class="split-btn" id="btn-inv-vismay">🔵 Vismay</div>
             </div>
           </div>
         </div>
@@ -739,6 +748,7 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 let txns = [];
 let currentType = 'income';
 let currentSplit = 'shared';
+let currentInvestor = 'shreyans';
 let currentFilter = 'all';
 let armedDelete = null;
 let armedTimer = null;
@@ -815,29 +825,35 @@ async function loadData() {
 
 // ── Calculations ───────────────────────────────────────────────────────────
 function calc() {
-  let sharedInc = 0, shreyansInc = 0, sharedExp = 0, shreyansExp = 0, totalSalary = 0;
+  let sharedInc = 0, shreyansInc = 0, sharedExp = 0, shreyansExp = 0;
+  let totalSalary = 0, shreyansInv = 0, vismayInv = 0;
   txns.forEach(t => {
     const amt = Number(t.amount);
     if (t.type === 'income') {
       if (t.split === 'shared') sharedInc += amt;
       else shreyansInc += amt;
     } else if (t.type === 'expense') {
-      // Only count actual business expenses (NOT salary or debt)
       if (t.split === 'shreyan') shreyansExp += amt;
       else sharedExp += amt;
     } else if (t.type === 'salary') {
-      totalSalary += amt; // tracked separately — reduces actual bank cash
+      totalSalary += amt;
+    } else if (t.type === 'investment') {
+      // Capital put IN by a partner — increases bank balance
+      if (t.split === 'shreyans') shreyansInv += amt;
+      else vismayInv += amt;
     }
-    // debt type: ignored in P&L calc, shown separately on Share page
+    // debt: shown on Share page only
   });
   const totalInc = sharedInc + shreyansInc;
   const totalExp = sharedExp + shreyansExp;
-  // Actual bank balance = income − business expenses − salaries already paid out
-  const balance = totalInc - totalExp - totalSalary;
-  // Partner net earnings = their profit allocation from business (before any salary draws)
+  const totalInv = shreyansInv + vismayInv;
+  // Bank balance = income + investments − business expenses − salaries paid
+  const balance = totalInc + totalInv - totalExp - totalSalary;
+  // Partner profit allocation (from business only, before salary/investment)
   const shreyansNet = (sharedInc / 2) + shreyansInc - (sharedExp / 2) - shreyansExp;
   const vismayNet = (sharedInc / 2) - (sharedExp / 2);
-  return { sharedInc, shreyansInc, totalInc, sharedExp, shreyansExp, totalExp, totalSalary, balance, shreyansNet, vismayNet };
+  return { sharedInc, shreyansInc, totalInc, sharedExp, shreyansExp, totalExp,
+           totalSalary, shreyansInv, vismayInv, totalInv, balance, shreyansNet, vismayNet };
 }
 
 function calcMonth(monthTxns) {
@@ -1217,8 +1233,9 @@ function calcShare() {
     }
     if (t.type === 'debt') totalDebt += amt;
   });
-  const shreyansCanWithdraw = base.shreyansNet - shreyansDrawn;
-  const vismayCanWithdraw = base.vismayNet - vismayDrawn;
+  // Can Withdraw = Profit Earned + Capital Invested − Salary Already Drawn
+  const shreyansCanWithdraw = base.shreyansNet + base.shreyansInv - shreyansDrawn;
+  const vismayCanWithdraw = base.vismayNet + base.vismayInv - vismayDrawn;
   return { ...base, shreyansDrawn, vismayDrawn, totalDebt, shreyansCanWithdraw, vismayCanWithdraw };
 }
 
@@ -1249,7 +1266,8 @@ function renderShare() {
     heroEl.innerHTML = `
       <div class="share-card shreyans-card">
         <div class="share-partner shreyans">🟠 Shreyans</div>
-        <div class="share-row"><span class="share-row-label">Net Earned (all time)</span><span style="color:var(--accent);font-weight:600">${inrFull(s.shreyansNet)}</span></div>
+        <div class="share-row"><span class="share-row-label">Net Profit Earned</span><span style="color:var(--accent);font-weight:600">${inrFull(s.shreyansNet)}</span></div>
+        <div class="share-row"><span class="share-row-label">Capital Invested</span><span style="color:var(--blue);font-weight:600">+${inrFull(s.shreyansInv)}</span></div>
         <div class="share-row"><span class="share-row-label">Salary Drawn</span><span style="color:var(--red);font-weight:600">−${inrFull(s.shreyansDrawn)}</span></div>
         <div class="share-withdraw">
           <span class="share-withdraw-label">Can Withdraw</span>
@@ -1258,7 +1276,8 @@ function renderShare() {
       </div>
       <div class="share-card vismay-card">
         <div class="share-partner vismay">🔵 Vismay</div>
-        <div class="share-row"><span class="share-row-label">Net Earned (all time)</span><span style="color:var(--blue);font-weight:600">${inrFull(s.vismayNet)}</span></div>
+        <div class="share-row"><span class="share-row-label">Net Profit Earned</span><span style="color:var(--blue);font-weight:600">${inrFull(s.vismayNet)}</span></div>
+        <div class="share-row"><span class="share-row-label">Capital Invested</span><span style="color:var(--blue);font-weight:600">+${inrFull(s.vismayInv)}</span></div>
         <div class="share-row"><span class="share-row-label">Salary Drawn</span><span style="color:var(--red);font-weight:600">−${inrFull(s.vismayDrawn)}</span></div>
         <div class="share-withdraw">
           <span class="share-withdraw-label">Can Withdraw</span>
@@ -1452,19 +1471,34 @@ function setType(type) {
   currentType = type;
   document.getElementById('btn-income').className = 'toggle-btn' + (type === 'income' ? ' sel-income' : '');
   document.getElementById('btn-expense').className = 'toggle-btn' + (type === 'expense' ? ' sel-expense' : '');
-  // Update split labels based on type
-  if (type === 'income') {
-    document.getElementById('split-label').textContent = 'Income Split';
-    document.getElementById('split-sub-shared').textContent = 'Both Partners';
-    document.getElementById('split-solo-label').textContent = '100% Shreyans';
-    document.getElementById('split-sub-solo').textContent = 'Solo Project';
+  document.getElementById('btn-investment').className = 'toggle-btn' + (type === 'investment' ? ' sel-investment' : '');
+  const splitGroup = document.getElementById('split-group');
+  const investorGroup = document.getElementById('investor-group');
+  if (type === 'investment') {
+    splitGroup.style.display = 'none';
+    investorGroup.style.display = '';
   } else {
-    document.getElementById('split-label').textContent = 'Expense Split';
-    document.getElementById('split-sub-shared').textContent = 'Both Partners';
-    document.getElementById('split-solo-label').textContent = '100% Shreyans';
-    document.getElementById('split-sub-solo').textContent = 'Shreyans Pays';
+    splitGroup.style.display = '';
+    investorGroup.style.display = 'none';
+    if (type === 'income') {
+      document.getElementById('split-label').textContent = 'Income Split';
+      document.getElementById('split-sub-shared').textContent = 'Both Partners';
+      document.getElementById('split-solo-label').textContent = '100% Shreyans';
+      document.getElementById('split-sub-solo').textContent = 'Solo Project';
+    } else {
+      document.getElementById('split-label').textContent = 'Expense Split';
+      document.getElementById('split-sub-shared').textContent = 'Both Partners';
+      document.getElementById('split-solo-label').textContent = '100% Shreyans';
+      document.getElementById('split-sub-solo').textContent = 'Shreyans Pays';
+    }
+    setSplit('shared');
   }
-  setSplit('shared');
+}
+
+function setInvestor(who) {
+  currentInvestor = who;
+  document.getElementById('btn-inv-shreyans').className = 'split-btn' + (who === 'shreyans' ? ' sel-shreyan' : '');
+  document.getElementById('btn-inv-vismay').className = 'split-btn' + (who === 'vismay' ? ' sel-shared' : '');
 }
 
 function setSplit(split) {
@@ -1479,7 +1513,7 @@ function resetForm() {
   const fd = document.getElementById('f-date'); if (fd) fd.value = today();
   const fc = document.getElementById('f-category'); if (fc) fc.value = '';
   const ea = document.getElementById('err-amount'); if (ea) ea.style.display = 'none';
-  setType('income'); setSplit('shared');
+  setType('income'); setSplit('shared'); setInvestor('shreyans');
 }
 
 async function addTransaction() {
@@ -1500,7 +1534,7 @@ async function addTransaction() {
   const tx = {
     id: Date.now().toString() + Math.floor(Math.random() * 999),
     type: currentType,
-    split: currentSplit,
+    split: currentType === 'investment' ? currentInvestor : currentSplit,
     amount: amount,
     date: document.getElementById('f-date')?.value || today(),
     category: document.getElementById('f-category')?.value || '',
@@ -1518,7 +1552,8 @@ async function addTransaction() {
     txns.push(tx);
     try { localStorage.setItem('tbp_tx_cache', JSON.stringify(txns)); } catch(e) {}
     resetForm();
-    toast((tx.type === 'income' ? 'Income' : 'Expense') + ' of ₹' + amount.toLocaleString('en-IN') + ' saved!', 'ok');
+    const typeLabel = tx.type === 'income' ? 'Income' : tx.type === 'investment' ? 'Investment' : 'Expense';
+    toast(typeLabel + ' of ₹' + amount.toLocaleString('en-IN') + ' saved!', 'ok');
     showView('dashboard');
   } catch(err) {
     toast('Save failed — ' + err.message, 'err');
@@ -1561,6 +1596,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-view-all')?.addEventListener('click', () => showView('history'));
   document.getElementById('btn-income')?.addEventListener('click', () => setType('income'));
   document.getElementById('btn-expense')?.addEventListener('click', () => setType('expense'));
+  document.getElementById('btn-investment')?.addEventListener('click', () => setType('investment'));
+  document.getElementById('btn-inv-shreyans')?.addEventListener('click', () => setInvestor('shreyans'));
+  document.getElementById('btn-inv-vismay')?.addEventListener('click', () => setInvestor('vismay'));
   document.getElementById('btn-shared')?.addEventListener('click', () => setSplit('shared'));
   document.getElementById('btn-shreyan-only')?.addEventListener('click', () => setSplit('shreyan'));
   document.getElementById('btn-add')?.addEventListener('click', addTransaction);
