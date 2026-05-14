@@ -264,6 +264,20 @@
     .gst-alert-label { font-size: 13px; color: var(--text-2); }
     .gst-alert-amount { font-size: 16px; font-weight: 800; color: var(--red); letter-spacing: -0.4px; }
 
+    /* Tax Report */
+    .tax-hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .tax-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+    .tax-card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-3); margin-bottom: 6px; }
+    .tax-card-value { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .tax-section { margin-bottom: 32px; }
+    .tax-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-3); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+    .tax-bulk-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .tax-bulk-info { font-size: 13px; color: var(--text-2); }
+    .tax-bulk-info strong { color: var(--text); }
+    .btn-tax-bulk { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; white-space: nowrap; }
+    .btn-tax-bulk:hover { background: var(--accent-hover); }
+    .btn-tax-bulk:disabled { opacity: 0.5; cursor: not-allowed; }
+
     /* Tally */
     .tally-section { margin-bottom: 32px; }
     .tally-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 0 0 10px; margin-bottom: 0; display: flex; align-items: center; gap: 10px; }
@@ -353,6 +367,10 @@
       <div class="nav-item" id="nav-tally">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         Tally
+      </div>
+      <div class="nav-item" id="nav-tax">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h3m-3 4h5m-5 0"/><line x1="16" y1="8" x2="16" y2="12"/></svg>
+        Tax Report
       </div>
     </div>
 
@@ -799,6 +817,66 @@
       <div class="share-monthly" id="share-monthly-wrap"></div>
     </div>
 
+    <!-- Tax Report -->
+    <div class="view" id="view-tax">
+      <div class="page-header">
+        <div class="page-title">Tax Report</div>
+        <div class="page-sub">GST collected and TDS deducted — client wise</div>
+      </div>
+
+      <!-- Summary hero cards -->
+      <div class="tax-hero" id="tax-hero-cards">
+        <div class="tax-card">
+          <div class="tax-card-label">📋 GST Invoices</div>
+          <div class="tax-card-value" id="tax-inv-count" style="color:var(--text)">0</div>
+        </div>
+        <div class="tax-card">
+          <div class="tax-card-label">💰 Total Invoice Base</div>
+          <div class="tax-card-value" id="tax-total-base" style="color:var(--text)">₹0</div>
+        </div>
+        <div class="tax-card">
+          <div class="tax-card-label">📈 GST Collected (18%)</div>
+          <div class="tax-card-value" id="tax-total-gst" style="color:var(--blue)">₹0</div>
+        </div>
+        <div class="tax-card">
+          <div class="tax-card-label">📉 TDS Deducted (10%)</div>
+          <div class="tax-card-value" id="tax-total-tds" style="color:var(--red)">₹0</div>
+        </div>
+      </div>
+
+      <!-- Net liability cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
+        <div class="tax-card">
+          <div class="tax-card-label">⚠️ Net GST to Pay Govt (GST − TDS)</div>
+          <div class="tax-card-value" id="tax-net-gst" style="color:var(--red)">₹0</div>
+        </div>
+        <div class="tax-card">
+          <div class="tax-card-label">✅ Total Cash Received in Bank</div>
+          <div class="tax-card-value" id="tax-cash-received" style="color:var(--green)">₹0</div>
+        </div>
+      </div>
+
+      <!-- Bulk update bar -->
+      <div class="tax-bulk-bar">
+        <div class="tax-bulk-info">
+          <strong>Mark all income as GST applicable</strong> — updates all existing income transactions to include 18% GST + 10% TDS tracking. Non-destructive: only adds the GST flag, doesn't change amounts.
+        </div>
+        <button class="btn-tax-bulk" id="btn-mark-gst">Mark All Income as GST</button>
+      </div>
+
+      <!-- GST Client-wise -->
+      <div class="tax-section">
+        <div class="tax-section-title" style="color:var(--blue);">📈 GST Collected — Client Wise</div>
+        <div id="tax-gst-table"></div>
+      </div>
+
+      <!-- TDS Client-wise -->
+      <div class="tax-section">
+        <div class="tax-section-title" style="color:var(--red);">📉 TDS Deducted — Client Wise</div>
+        <div id="tax-tds-table"></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -1048,6 +1126,7 @@ function render() {
   try { renderMonthly(); } catch(e) { console.error('renderMonthly error:', e); }
   try { renderTally(); } catch(e) { console.error('renderTally error:', e); }
   try { renderShare(); } catch(e) { console.error('renderShare error:', e); }
+  try { renderTax(); } catch(e) { console.error('renderTax error:', e); }
 }
 
 function renderCategoryChart(id, list, color) {
@@ -1621,6 +1700,149 @@ function renderShare() {
     </div>`;
 }
 
+// ── Tax Report ─────────────────────────────────────────────────────────────
+function renderTax() {
+  const gstTxns = txns.filter(t => t.type === 'income' && parseDesc(t.description).gst);
+  const allIncome = txns.filter(t => t.type === 'income');
+
+  // Hero card totals
+  let totBase = 0, totGST = 0, totTDS = 0, totNet = 0, totRec = 0;
+  gstTxns.forEach(t => {
+    const base = Number(t.amount);
+    totBase += base; totGST += base * 0.18; totTDS += base * 0.10;
+    totNet += base * 0.08; totRec += base * 1.08;
+  });
+  set('tax-inv-count', gstTxns.length + ' of ' + allIncome.length + ' income');
+  set('tax-total-base', inr(totBase));
+  set('tax-total-gst', inr(totGST));
+  set('tax-total-tds', inr(totTDS));
+  set('tax-net-gst', inr(totNet));
+  set('tax-cash-received', inr(totRec));
+
+  // Build client map
+  const clientMap = {};
+  gstTxns.forEach(t => {
+    const client = t.client || parseDesc(t.description).note || 'Unknown Client';
+    if (!clientMap[client]) clientMap[client] = { count: 0, base: 0, gst: 0, tds: 0, net: 0, received: 0 };
+    const base = Number(t.amount);
+    clientMap[client].count++;
+    clientMap[client].base += base;
+    clientMap[client].gst += base * 0.18;
+    clientMap[client].tds += base * 0.10;
+    clientMap[client].net += base * 0.08;
+    clientMap[client].received += base * 1.08;
+  });
+
+  const cols = '2fr 60px 1fr 1fr 1fr 1fr 1fr';
+  const emptyMsg = `<div class="empty"><div class="empty-icon">📊</div><div>No GST-tagged income yet. Click <strong>Mark All Income as GST</strong> above to tag all existing transactions, or check the GST box when adding new income.</div></div>`;
+
+  // ── GST client-wise ──
+  const gstEl = document.getElementById('tax-gst-table');
+  if (gstEl) {
+    if (!gstTxns.length) { gstEl.innerHTML = emptyMsg; }
+    else {
+      let tb = 0, tg = 0, tt = 0, tn = 0, tr = 0;
+      const rows = Object.entries(clientMap).sort((a,b) => b[1].base - a[1].base).map(([client, d]) => {
+        tb += d.base; tg += d.gst; tt += d.tds; tn += d.net; tr += d.received;
+        return `<div class="tally-row" style="grid-template-columns:${cols}">
+          <span style="font-weight:600">${client}</span>
+          <span style="color:var(--text-3);font-size:12px;">${d.count} inv</span>
+          <span style="justify-content:flex-end;font-weight:600">${inrFull(d.base)}</span>
+          <span style="justify-content:flex-end;color:var(--blue);font-weight:600">+${inrFull(d.gst)}</span>
+          <span style="justify-content:flex-end;color:var(--red);font-weight:600">−${inrFull(d.tds)}</span>
+          <span style="justify-content:flex-end;color:var(--red);font-weight:700">${inrFull(d.net)}</span>
+          <span style="justify-content:flex-end;color:var(--green);font-weight:700">${inrFull(d.received)}</span>
+        </div>`;
+      }).join('');
+      const header = `<div class="tally-thead" style="grid-template-columns:${cols}">
+        <span>Client / Project</span><span></span>
+        <span style="text-align:right">Invoice Base</span>
+        <span style="text-align:right">GST 18%</span>
+        <span style="text-align:right">TDS 10%</span>
+        <span style="text-align:right">Net GST to Govt</span>
+        <span style="text-align:right">Cash to Bank</span>
+      </div>`;
+      const footer = `<div class="tally-total-row" style="grid-template-columns:${cols}">
+        <span>Total</span><span style="color:var(--text-3);font-size:12px;">${gstTxns.length} inv</span>
+        <span style="justify-content:flex-end">${inrFull(tb)}</span>
+        <span style="justify-content:flex-end;color:var(--blue)">+${inrFull(tg)}</span>
+        <span style="justify-content:flex-end;color:var(--red)">−${inrFull(tt)}</span>
+        <span style="justify-content:flex-end;color:var(--red)">${inrFull(tn)}</span>
+        <span style="justify-content:flex-end;color:var(--green)">${inrFull(tr)}</span>
+      </div>`;
+      gstEl.innerHTML = `<div class="tally-table">${header}${rows}${footer}</div>`;
+    }
+  }
+
+  // ── TDS client-wise ──
+  const tdsEl = document.getElementById('tax-tds-table');
+  if (tdsEl) {
+    if (!gstTxns.length) { tdsEl.innerHTML = emptyMsg; }
+    else {
+      const tdsCols = '2fr 60px 1fr 1fr 1fr';
+      let tb = 0, tt = 0;
+      const rows = Object.entries(clientMap).sort((a,b) => b[1].tds - a[1].tds).map(([client, d]) => {
+        tb += d.base; tt += d.tds;
+        const pct = totBase > 0 ? ((d.base / totBase) * 100).toFixed(1) : '0.0';
+        return `<div class="tally-row" style="grid-template-columns:${tdsCols}">
+          <span style="font-weight:600">${client}</span>
+          <span style="color:var(--text-3);font-size:12px;">${d.count} inv</span>
+          <span style="justify-content:flex-end;font-weight:600">${inrFull(d.base)}</span>
+          <span style="justify-content:flex-end;color:var(--red);font-weight:700">−${inrFull(d.tds)}</span>
+          <span style="justify-content:flex-end;color:var(--text-3);font-size:12px;">${pct}% of total</span>
+        </div>`;
+      }).join('');
+      const header = `<div class="tally-thead" style="grid-template-columns:${tdsCols}">
+        <span>Client / Project</span><span></span>
+        <span style="text-align:right">Invoice Base</span>
+        <span style="text-align:right">TDS Deducted (10%)</span>
+        <span style="text-align:right">Share of Total</span>
+      </div>`;
+      const footer = `<div class="tally-total-row" style="grid-template-columns:${tdsCols}">
+        <span>Total TDS Deducted</span><span style="color:var(--text-3);font-size:12px;">${gstTxns.length} inv</span>
+        <span style="justify-content:flex-end">${inrFull(tb)}</span>
+        <span style="justify-content:flex-end;color:var(--red)">−${inrFull(tt)}</span>
+        <span></span>
+      </div>`;
+      tdsEl.innerHTML = `<div class="tally-table">${header}${rows}${footer}</div>`;
+    }
+  }
+}
+
+async function markAllGST() {
+  const incomes = txns.filter(t => t.type === 'income');
+  const alreadyTagged = incomes.filter(t => parseDesc(t.description).gst).length;
+  const toTag = incomes.length - alreadyTagged;
+  if (!incomes.length) { toast('No income transactions found.', 'err'); return; }
+  if (toTag === 0) { toast('All income is already GST-tagged!', 'ok'); return; }
+  if (!confirm(`Tag ${toTag} income transaction${toTag !== 1 ? 's' : ''} as GST applicable (18% GST + 10% TDS)? This won't change their amounts.`)) return;
+
+  const btn = document.getElementById('btn-mark-gst');
+  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+  try {
+    const updates = incomes.map(t => {
+      const d = parseDesc(t.description);
+      return { ...t, description: JSON.stringify({ gst: true, note: d.note }) };
+    });
+    const { error } = await db.from('transactions').upsert(updates, { onConflict: 'id' });
+    if (error) throw error;
+    txns = txns.map(t => {
+      if (t.type === 'income') {
+        const d = parseDesc(t.description);
+        return { ...t, description: JSON.stringify({ gst: true, note: d.note }) };
+      }
+      return t;
+    });
+    try { localStorage.setItem('tbp_tx_cache', JSON.stringify(txns)); } catch(e) {}
+    toast(`✓ ${toTag} transaction${toTag !== 1 ? 's' : ''} marked as GST applicable.`, 'ok');
+    render();
+  } catch(err) {
+    toast('Update failed — ' + err.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Mark All Income as GST'; }
+  }
+}
+
 function setShareEntryType(type) {
   shareEntryType = type;
   document.getElementById('sb-salary').className = 'share-type-btn' + (type === 'salary' ? ' sel-salary' : '');
@@ -1858,7 +2080,7 @@ async function importData(file) {
 
 // ── Events ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  [['nav-dashboard','dashboard'],['nav-split','split'],['nav-monthly','monthly'],['nav-tally','tally'],['nav-share','share'],['nav-add','add'],['nav-history','history']].forEach(([id, view]) => {
+  [['nav-dashboard','dashboard'],['nav-split','split'],['nav-monthly','monthly'],['nav-tally','tally'],['nav-share','share'],['nav-tax','tax'],['nav-add','add'],['nav-history','history']].forEach(([id, view]) => {
     document.getElementById(id)?.addEventListener('click', () => showView(view));
   });
   document.getElementById('btn-view-all')?.addEventListener('click', () => showView('history'));
@@ -1881,6 +2103,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sb-to-shreyans')?.addEventListener('click', () => setSalaryRecipient('shreyans'));
   document.getElementById('sb-to-vismay')?.addEventListener('click', () => setSalaryRecipient('vismay'));
   document.getElementById('btn-share-add')?.addEventListener('click', addShareEntry);
+  document.getElementById('btn-mark-gst')?.addEventListener('click', markAllGST);
   document.getElementById('sb-date').value = today();
   document.getElementById('sb-debt-date').value = today();
   document.getElementById('f-amount')?.addEventListener('input', () => {
