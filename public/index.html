@@ -350,8 +350,6 @@
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         Share &amp; Withdraw
       </div>
-    </div>
-
       <div class="nav-item" id="nav-tally">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         Tally
@@ -811,9 +809,11 @@
 const PASSWORD = 'tbp2025';
 
 function checkLock() {
-  if (localStorage.getItem('tbp_auth') === PASSWORD) {
-    document.getElementById('lock-screen').classList.add('hidden');
-  }
+  try {
+    if (localStorage.getItem('tbp_auth') === PASSWORD) {
+      document.getElementById('lock-screen').classList.add('hidden');
+    }
+  } catch(e) { /* localStorage blocked — stay on lock screen */ }
 }
 function unlock() {
   const input = document.getElementById('lock-input');
@@ -918,10 +918,11 @@ async function loadData() {
   } catch(err) {
     setConn('offline');
     try { txns = JSON.parse(localStorage.getItem('tbp_tx_cache') || '[]'); } catch(e) { txns = []; }
-    toast('Could not reach database — showing cached data.', 'err');
+    try { toast('Could not reach database — showing cached data.', 'err'); } catch(e) {}
+  } finally {
+    hideLoading();
+    render();
   }
-  hideLoading();
-  render();
 }
 
 // ── Calculations ───────────────────────────────────────────────────────────
@@ -1040,13 +1041,13 @@ function render() {
   set('p-vi-net', inrFull(s.vismayNet));
   setColor('p-vi-net', s.vismayNet < 0 ? 'var(--red)' : 'var(--green)');
 
-  renderMRR();
-  renderDashboardChart();
-  renderList('list-recent', txns.slice(-6).reverse(), 'all');
-  renderList('list-history', [...txns].reverse(), currentFilter);
-  renderMonthly();
-  renderTally();
-  renderShare();
+  try { renderMRR(); } catch(e) { console.error('renderMRR error:', e); }
+  try { renderDashboardChart(); } catch(e) { console.error('renderDashboardChart error:', e); }
+  try { renderList('list-recent', txns.slice(-6).reverse(), 'all'); } catch(e) { console.error('renderList recent error:', e); }
+  try { renderList('list-history', [...txns].reverse(), currentFilter); } catch(e) { console.error('renderList history error:', e); }
+  try { renderMonthly(); } catch(e) { console.error('renderMonthly error:', e); }
+  try { renderTally(); } catch(e) { console.error('renderTally error:', e); }
+  try { renderShare(); } catch(e) { console.error('renderShare error:', e); }
 }
 
 function renderCategoryChart(id, list, color) {
