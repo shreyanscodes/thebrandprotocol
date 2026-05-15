@@ -139,6 +139,9 @@
     .badge-shared { background: var(--blue-dim); color: var(--blue); }
     .badge-shreyan { background: var(--accent-dim); color: var(--accent); }
     .badge-expense-shared { background: var(--red-dim); color: var(--red); }
+    .badge-gst-pay { background: rgba(107,159,212,0.15); color: var(--blue); }
+    .sel-gst-pay { background: rgba(107,159,212,0.15) !important; border-color: var(--blue) !important; color: var(--blue) !important; }
+    .tx-icon.gst_payment { background: rgba(107,159,212,0.12); }
     .badge-expense-solo { background: rgba(201,100,66,0.2); color: var(--accent); }
     .tx-amount { font-size: 14px; font-weight: 600; white-space: nowrap; }
     .tx-amount.income { color: var(--green); }
@@ -551,6 +554,7 @@
               <div class="toggle-btn sel-income" id="btn-income">↑ Income</div>
               <div class="toggle-btn" id="btn-expense">↓ Expense</div>
               <div class="toggle-btn" id="btn-investment">⬆ Investment</div>
+              <div class="toggle-btn" id="btn-gst-pay">🏛 GST Pay</div>
             </div>
           </div>
           <div class="form-group" id="split-group">
@@ -565,6 +569,13 @@
             <div class="split-toggle">
               <div class="split-btn sel-shreyan" id="btn-inv-shreyans">🟠 Shreyans</div>
               <div class="split-btn" id="btn-inv-vismay">🔵 Vismay</div>
+            </div>
+          </div>
+          <div class="form-group" id="gst-pay-info" style="display:none;">
+            <div style="background:rgba(107,159,212,0.1);border:1px solid rgba(107,159,212,0.3);border-radius:var(--radius-sm);padding:10px 14px;font-size:12.5px;color:var(--text-2);line-height:1.6;">
+              🏛 <strong style="color:var(--blue)">GST Payment to Government</strong><br>
+              Reduces bank balance only. Partner profit splits are unaffected — GST was never part of your profit calculation.
+              Always <strong>50 / 50 shared</strong> between partners.
             </div>
           </div>
         </div>
@@ -1009,6 +1020,7 @@ function calc() {
   let totalSalary = 0, shreyansInv = 0, vismayInv = 0;
   let cashInc = 0;   // actual cash that hit the bank (base + GST − TDS for GST invoices)
   let gstOwed = 0;   // GST sitting in bank that belongs to govt (net = GST 18% − TDS 10% = 8%)
+  let gstPaid = 0;   // GST actually paid to government (reduces bank balance only)
 
   txns.forEach(t => {
     const amt = Number(t.amount);
@@ -1028,19 +1040,22 @@ function calc() {
     } else if (t.type === 'investment') {
       if (t.split === 'shreyans') shreyansInv += amt;
       else vismayInv += amt;
+    } else if (t.type === 'gst_payment') {
+      // GST paid to govt: reduces bank balance only, never touches partner P&L
+      gstPaid += amt;
     }
     // debt: shown on Share page only
   });
   const totalInc = sharedInc + shreyansInc; // base invoice total (for P&L / partner split)
   const totalExp = sharedExp + shreyansExp;
   const totalInv = shreyansInv + vismayInv;
-  // Bank balance = ACTUAL cash received (with GST/TDS) + investments − expenses − salaries
-  const balance = cashInc + totalInv - totalExp - totalSalary;
+  // Bank balance = ACTUAL cash received (with GST/TDS) + investments − expenses − salaries − GST paid to govt
+  const balance = cashInc + totalInv - totalExp - totalSalary - gstPaid;
   // Partner profit allocation stays on BASE amounts (GST is govt money)
   const shreyansNet = (sharedInc / 2) + shreyansInc - (sharedExp / 2) - shreyansExp;
   const vismayNet = (sharedInc / 2) - (sharedExp / 2);
   return { sharedInc, shreyansInc, totalInc, cashInc, sharedExp, shreyansExp, totalExp,
-           totalSalary, shreyansInv, vismayInv, totalInv, balance, shreyansNet, vismayNet, gstOwed };
+           totalSalary, shreyansInv, vismayInv, totalInv, balance, shreyansNet, vismayNet, gstOwed, gstPaid };
 }
 
 function calcMonth(monthTxns) {
@@ -1079,9 +1094,12 @@ function render() {
   if (balCard) balCard.className = 'stat-card balance' + (s.balance < 0 ? ' neg' : '');
   setColor('s-balance', s.balance < 0 ? 'var(--red)' : 'var(--green)');
   setWidth('bar-balance', s.cashInc > 0 ? (s.balance / s.cashInc) * 100 : 0);
-  // Show GST liability note if there's GST owed
-  if (s.gstOwed > 0) {
-    set('s-balance-sub', 'incl. ' + inrFull(s.gstOwed) + ' GST owed to govt');
+  // Show GST liability note (owed minus already paid)
+  const netGSTOwed = s.gstOwed - s.gstPaid;
+  if (netGSTOwed > 0) {
+    set('s-balance-sub', 'incl. ' + inrFull(netGSTOwed) + ' GST still owed to govt');
+  } else if (s.gstOwed > 0) {
+    set('s-balance-sub', 'GST fully paid ✓');
   } else {
     set('s-balance-sub', 'Cash in bank after expenses');
   }
@@ -1176,22 +1194,27 @@ function renderList(id, list, filter) {
   }
   el.innerHTML = filtered.map(t => {
     const isInc = t.type === 'income';
+    const isGSTPay = t.type === 'gst_payment';
     let badge = '';
     if (isInc) {
       badge = t.split === 'shared'
         ? '<span class="tx-badge badge-shared">50/50</span>'
         : '<span class="tx-badge badge-shreyan">Solo Shreyans</span>';
+    } else if (isGSTPay) {
+      badge = '<span class="tx-badge badge-gst-pay">🏛 GST Paid</span>';
     } else {
       badge = t.split === 'shreyan'
         ? '<span class="tx-badge badge-expense-solo">Shreyans Only</span>'
         : '<span class="tx-badge badge-expense-shared">50/50</span>';
     }
     const meta = [t.category, fmtDate(t.date), parseDesc(t.description).note].filter(Boolean).join(' · ');
+    const icon = isInc ? '↑' : isGSTPay ? '🏛' : '↓';
+    const amtColor = isInc ? 'income' : 'expense';
     return `<div class="tx-item">
-      <div class="tx-icon ${t.type}">${isInc ? '↑' : '↓'}</div>
-      <div><div class="tx-name">${t.client || t.description || 'Unnamed'}</div><div class="tx-meta">${meta}</div></div>
+      <div class="tx-icon ${t.type}">${icon}</div>
+      <div><div class="tx-name">${t.client || t.description || (isGSTPay ? 'GST Payment to Govt' : 'Unnamed')}</div><div class="tx-meta">${meta}</div></div>
       ${badge}
-      <div class="tx-amount ${t.type}">${isInc ? '+' : '−'}${inrFull(t.amount)}</div>
+      <div class="tx-amount ${amtColor}">${isInc ? '+' : '−'}${inrFull(t.amount)}</div>
       <button class="tx-del" data-id="${t.id}" title="Delete">✕</button>
     </div>`;
   }).join('');
@@ -1963,6 +1986,7 @@ function setType(type) {
   document.getElementById('btn-income').className = 'toggle-btn' + (type === 'income' ? ' sel-income' : '');
   document.getElementById('btn-expense').className = 'toggle-btn' + (type === 'expense' ? ' sel-expense' : '');
   document.getElementById('btn-investment').className = 'toggle-btn' + (type === 'investment' ? ' sel-investment' : '');
+  document.getElementById('btn-gst-pay').className = 'toggle-btn' + (type === 'gst_payment' ? ' sel-gst-pay' : '');
   const gstPanel = document.getElementById('gst-panel');
   if (gstPanel) gstPanel.style.display = type === 'income' ? '' : 'none';
   if (type !== 'income') {
@@ -1971,12 +1995,19 @@ function setType(type) {
   }
   const splitGroup = document.getElementById('split-group');
   const investorGroup = document.getElementById('investor-group');
+  const gstPayInfo = document.getElementById('gst-pay-info');
   if (type === 'investment') {
     splitGroup.style.display = 'none';
     investorGroup.style.display = '';
+    if (gstPayInfo) gstPayInfo.style.display = 'none';
+  } else if (type === 'gst_payment') {
+    splitGroup.style.display = 'none';
+    investorGroup.style.display = 'none';
+    if (gstPayInfo) gstPayInfo.style.display = '';
   } else {
     splitGroup.style.display = '';
     investorGroup.style.display = 'none';
+    if (gstPayInfo) gstPayInfo.style.display = 'none';
     if (type === 'income') {
       document.getElementById('split-label').textContent = 'Income Split';
       document.getElementById('split-sub-shared').textContent = 'Both Partners';
@@ -2033,7 +2064,7 @@ async function addTransaction() {
   const tx = {
     id: Date.now().toString() + Math.floor(Math.random() * 999),
     type: currentType,
-    split: currentType === 'investment' ? currentInvestor : currentSplit,
+    split: currentType === 'investment' ? currentInvestor : currentType === 'gst_payment' ? 'shared' : currentSplit,
     amount: amount,
     date: document.getElementById('f-date')?.value || today(),
     category: document.getElementById('f-category')?.value || '',
@@ -2055,7 +2086,7 @@ async function addTransaction() {
     txns.push(tx);
     try { localStorage.setItem('tbp_tx_cache', JSON.stringify(txns)); } catch(e) {}
     resetForm();
-    const typeLabel = tx.type === 'income' ? 'Income' : tx.type === 'investment' ? 'Investment' : 'Expense';
+    const typeLabel = tx.type === 'income' ? 'Income' : tx.type === 'investment' ? 'Investment' : tx.type === 'gst_payment' ? 'GST Payment' : 'Expense';
     toast(typeLabel + ' of ₹' + amount.toLocaleString('en-IN') + ' saved!', 'ok');
     showView('dashboard');
   } catch(err) {
@@ -2100,6 +2131,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-income')?.addEventListener('click', () => setType('income'));
   document.getElementById('btn-expense')?.addEventListener('click', () => setType('expense'));
   document.getElementById('btn-investment')?.addEventListener('click', () => setType('investment'));
+  document.getElementById('btn-gst-pay')?.addEventListener('click', () => setType('gst_payment'));
   document.getElementById('btn-inv-shreyans')?.addEventListener('click', () => setInvestor('shreyans'));
   document.getElementById('btn-inv-vismay')?.addEventListener('click', () => setInvestor('vismay'));
   document.getElementById('btn-shared')?.addEventListener('click', () => setSplit('shared'));
